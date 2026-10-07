@@ -22,7 +22,6 @@ import { AuditLog } from './auditLog';
 
 export { CODE };
 
-const MAX_DIAGS = 500;
 const WORKER_TIMEOUT_MS = 20000;
 
 export class BioLinter {
