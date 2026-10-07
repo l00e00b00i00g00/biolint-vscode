@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — 2026-10-07 (Design accuracy)
+- Codon optimization: CAI + rare codons (E. coli/yeast/human built-ins, custom JSON override), optimizer command, blue CAI hints on complete ORFs
+- Primer-pair QC command: ΔTm matching + heterodimer ΔG (selections or quickpick)
+- GenBank annotation validation: LOCUS length, CDS bounds/start/stop/frame, /translation agreement, both strands + join()
+- Configurable Tm conditions (primer nM, Na+/Mg++), inlay hints Tm·GC%
+- Physics fix: hairpin/dimer alignment now scores plain-reverse (was reverse-complement → detected direct repeats)
+- Hairpin warnings highlight the stem, not the whole primer
+
 ## 1.0.2 — 2026-10-07 (10/10 round)
 - CI workflow: compile + unit tests + headless offset smoke-lint + `.vsix` artifact + tag release upload
 - Get-started walkthrough (3 steps), editor title-bar visualizer button for bio files

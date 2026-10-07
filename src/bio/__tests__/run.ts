@@ -1,6 +1,10 @@
 /** Minimal zero-dependency unit tests for the bio engine (run via `npm run test:unit`). */
 import * as assert from 'assert';
 import { parseFasta, parseFastq, parseGenBank, extractInline, reverseComplement, stripToPure } from '../sequence';
+import { heteroDimerDeltaG } from '../deltaG';
+import { analyzePair } from '../primer';
+import { cai, findRareCodons, optimizeCodons, HOST_TABLES } from '../codon';
+import { parseGenBankAnnotations, validateGenBank, spliceFeature } from '../genbank';
 import { gcContent, classifyGC } from '../gc';
 import { santaLuciaTm, wallaceTm } from '../tm';
 import { hairpinDeltaG, selfDimerDeltaG } from '../deltaG';
@@ -133,6 +137,71 @@ check('AUDIT: genbank + inline offsets are exact', () => {
       assert.strictEqual(code[s.seqToDoc[i]].toUpperCase(), s.raw[i]);
     }
   }
+});
+
+check('v1.1.0: CAI + rare codons + optimizer', () => {
+  const ecoli = HOST_TABLES.ecoli;
+  assert.strictEqual(cai('ATGATGATG', ecoli), 1, 'poly-Met CAI must be 1');
+  const rare = findRareCodons('ATGAGAAGGCTAATA' + 'GCT'.repeat(6), ecoli);
+  assert.ok(rare.some(r => r.codon === 'AGA'), 'AGA should be rare in E. coli');
+  assert.ok(rare.some(r => r.codon === 'CTA'), 'CTA should be rare in E. coli');
+  const coding = 'ATG' + 'AGAAGGCTAATA' + 'GCT'.repeat(20) + 'TAA';
+  const res = optimizeCodons(coding, ecoli);
+  assert.ok(res.caiAfter >= res.caiBefore, 'optimizer must not regress CAI');
+  assert.ok(res.changes > 0, 'optimizer should change rare codons');
+  assert.ok(res.optimized.startsWith('ATG') && res.optimized.endsWith('TAA'), 'start/stop preserved');
+  assert.strictEqual(res.optimized.length, coding.length, 'length preserved');
+});
+
+check('v1.1.0: heterodimer + pair QC', () => {
+  // Perfect cross-complementary 20-mers → strong heterodimer.
+  const fwd = 'ATGCGATCGATCGATCGATC';
+  const rev = reverseComplement(fwd);
+  const hd = heteroDimerDeltaG(fwd, rev);
+  assert.ok(hd.found && hd.deltaG < -9, `expected strong heterodimer, got ${hd.deltaG}`);
+  const okPair = analyzePair('ATGCGATCGATCGATCGATCGA', 'TCGATCGATCGATCGATCGCAT');
+  assert.ok(typeof okPair.ok === 'boolean' && okPair.report.includes('ΔTm'));
+  const badPair = analyzePair('ATATATATATATATAT', 'GCGCGCGCGCGCGCGCGCGCGCGC');
+  assert.strictEqual(badPair.ok, false, 'AT vs GC pair must fail ΔTm');
+  assert.ok(badPair.deltaTm > 5, `deltaTm ${badPair.deltaTm}`);
+});
+
+const GB30 = 'ATGGCTGCTGCTGCTGCTGCTGCTGCTTAA'; // 30 nt, M + 8×A, TAA stop
+function gbText(locusLen: number, loc: string, translation: string, origin: string): string {
+  return `LOCUS       TEST30                 ${locusLen} bp    DNA     synthetic\n` +
+    `FEATURES             Location/Qualifiers\n` +
+    `     CDS             ${loc}\n` +
+    `                     /translation="${translation}"\n` +
+    `ORIGIN\n        1 ${origin.slice(0, 20).toLowerCase()} ${origin.slice(20).toLowerCase()}\n//\n`;
+}
+
+check('v1.1.0: genbank valid annotations', () => {
+  const text = gbText(30, '1..30', 'MAAAAAAAA', GB30);
+  const ann = parseGenBankAnnotations(text);
+  assert.strictEqual(ann.locusLength, 30);
+  assert.strictEqual(ann.features.length, 1);
+  const issues = validateGenBank(GB30, ann);
+  assert.deepStrictEqual(issues, [], `expected no issues, got ${JSON.stringify(issues)}`);
+});
+
+check('v1.1.0: genbank catches bad annotations', () => {
+  const kinds = (t: string): string[] => validateGenBank(GB30, parseGenBankAnnotations(t)).map(i => i.kind);
+  assert.ok(kinds(gbText(31, '1..30', 'MAAAAAAAA', GB30)).includes('locus-length'), 'locus mismatch');
+  assert.ok(kinds(gbText(30, '1..99', 'MAAAAAAAA', GB30)).includes('cds-bounds'), 'oob exon');
+  assert.ok(kinds(gbText(30, '1..30', 'MFFFFFFF', GB30)).includes('cds-translation'), 'translation mismatch');
+  const badStart = 'TTG' + GB30.slice(3);
+  assert.ok(validateGenBank(badStart, parseGenBankAnnotations(gbText(30, '1..30', 'MAAAAAAAA', badStart))).some(i => i.kind === 'cds-start'), 'bad start');
+  const noStop = GB30.slice(0, 27) + 'TTT';
+  assert.ok(validateGenBank(noStop, parseGenBankAnnotations(gbText(30, '1..30', 'MAAAAAAAA', noStop))).some(i => i.kind === 'cds-stop'), 'missing stop');
+});
+
+check('v1.1.0: genbank complement strand', () => {
+  const fwd = reverseComplement(GB30);
+  const text = gbText(30, 'complement(1..30)', 'MAAAAAAAA', fwd);
+  const ann = parseGenBankAnnotations(text);
+  assert.strictEqual(ann.features[0].strand, -1);
+  assert.strictEqual(spliceFeature(fwd, ann.features[0]), GB30);
+  assert.deepStrictEqual(validateGenBank(fwd, ann), [], 'complement CDS should validate');
 });
 
 check('AUDIT: stripToPure mapping (N/U/gaps/invalid)', () => {

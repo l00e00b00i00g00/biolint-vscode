@@ -5,7 +5,18 @@
  * NOT a full Zuker/MFOLD partition function.
  */
 
-import { reverseComplement } from './sequence';
+/**
+ * NOTE (v1.1.0 audit): folding alignments score the query against the PLAIN
+ * REVERSE of the partner strand — never the reverse-complement. In an
+ * antiparallel duplex, facing bases (top 5'→3', bottom 3'→5') must be
+ * Watson-Crick complementary, i.e. bottom[j] == complement(top[i]), which
+ * pairing against reverse() tests directly. Using reverseComplement() here
+ * detects direct repeats instead of inverted ones (physically wrong).
+ */
+
+function rev(s: string): string {
+  return s.split('').reverse().join('');
+}
 
 export interface HairpinResult {
   deltaG: number; // kcal/mol, most stable found
@@ -46,9 +57,9 @@ export function hairpinDeltaG(seq: string): HairpinResult {
         if (j + stem > n) { continue; }
         const left = s.slice(i, i + stem);
         const right = s.slice(j, j + stem);
-        const rcRight = reverseComplement(right);
+        const revRight = rev(right);
         let e = 0;
-        for (let k = 0; k < stem; k++) { e += pairEnergy(left[k], rcRight[k]); }
+        for (let k = 0; k < stem; k++) { e += pairEnergy(left[k], revRight[k]); }
         e += 3.5 + loop * 0.35; // loop entropy penalty
         if (e < best.deltaG) {
           best = { deltaG: round1(e), stemStart: i, stemLength: stem, loopLength: loop, found: true };
@@ -61,24 +72,32 @@ export function hairpinDeltaG(seq: string): HairpinResult {
 
 /** Align sequence against its own reverse complement at all shifts; best overlap wins. */
 export function selfDimerDeltaG(seq: string): SelfDimerResult {
-  const s = seq.toUpperCase().replace(/U/g, 'T');
-  const rc = reverseComplement(s);
-  const n = s.length;
+  return heteroDimerDeltaG(seq, seq);
+}
+
+/**
+ * Heterodimer ΔG between two primers (a vs reverse-complement of b).
+ * This is the general core; selfDimerDeltaG(a) === heteroDimerDeltaG(a, a).
+ */
+export function heteroDimerDeltaG(aRaw: string, bRaw: string): SelfDimerResult {
+  const a = aRaw.toUpperCase().replace(/U/g, 'T');
+  const revB = rev(bRaw.toUpperCase().replace(/U/g, 'T'));
+  const n = a.length, m = revB.length;
   let best: SelfDimerResult = { deltaG: 0, shift: 0, overlap: 0, alignment: '', found: false };
-  if (n < 6) { return best; }
-  for (let shift = -(n - 1); shift <= n - 1; shift++) {
+  if (n < 6 || m < 6) { return best; }
+  for (let shift = -(m - 1); shift <= n - 1; shift++) {
     let e = 4.1; // bimolecular initiation
     let overlap = 0;
     let matches = 0;
     let alignTop = '', alignMid = '', alignBot = '';
     for (let i = 0; i < n; i++) {
       const j = i - shift;
-      if (j < 0 || j >= n) { continue; }
+      if (j < 0 || j >= m) { continue; }
       overlap++;
-      const pe = pairEnergy(s[i], rc[j]);
+      const pe = pairEnergy(a[i], revB[j]);
       e += pe;
       if (pe < 0) { matches++; }
-      alignTop += s[i]; alignMid += pe < 0 ? '|' : ' '; alignBot += rc[j];
+      alignTop += a[i]; alignMid += pe < 0 ? '|' : ' '; alignBot += revB[j];
     }
     if (overlap >= 5 && matches >= 4 && e < best.deltaG) {
       best = {

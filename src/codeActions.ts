@@ -1,7 +1,10 @@
 /** codeActions.ts — 1-click quick fixes surfaced as lightbulbs + hover command links. */
 import * as vscode from 'vscode';
-import { optimizePrimer, reverseComplement } from './bio';
-import { getConfig } from './config';
+import {
+  optimizePrimer, reverseComplement, analyzePair, optimizeCodons,
+  HOST_TABLES, loadCodonTable,
+} from './bio';
+import { getConfig, tmOptionsOf } from './config';
 import { CODE } from './diagnostics';
 
 interface CmdArgs { seq?: string; range?: { start: { line: number; character: number }; end: { line: number; character: number } } }
@@ -139,6 +142,98 @@ export class BioCodeActionProvider implements vscode.CodeActionProvider {
       studio.command = { command: 'biolint.openSynthFlowStudio', title: 'Open SynthFlow Studio' };
       actions.push(studio);
     }
+    const needsCodon = ctx.diagnostics.some(d =>
+      d.code === CODE.codon || (typeof d.code === 'object' && d.code !== null && (d.code as { value: string }).value === CODE.codon));
+    if (needsCodon) {
+      const co = new vscode.CodeAction('BioLint: Optimize codons for host (CAI)', vscode.CodeActionKind.QuickFix);
+      co.command = { command: 'biolint.optimizeCodons', title: 'Optimize codons' };
+      actions.push(co);
+    }
     return actions;
+  }
+}
+
+/** v1.1.0: primer-pair QC from two selections (or two primer quickpicks). */
+export async function cmdCheckPrimerPair(): Promise<void> {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed) { return; }
+  const cfg = getConfig();
+  const clean = (s: string): string => s.toUpperCase().replace(/[^ACGTUN]/g, '').replace(/U/g, 'T');
+  const nonEmpty = ed.selections.filter(s => !s.isEmpty && clean(ed.document.getText(s)).length >= 10);
+  let fwd = '', rev = '';
+  if (nonEmpty.length >= 2) {
+    fwd = clean(ed.document.getText(nonEmpty[0]));
+    rev = clean(ed.document.getText(nonEmpty[1]));
+  } else {
+    const { extractSegments } = await import('./bio');
+    const cands = extractSegments(ed.document.fileName, ed.document.getText(), cfg.minPrimerLength)
+      .map(s => ({ id: s.id, seq: clean(s.raw) }))
+      .filter(c => c.seq.length >= 10 && c.seq.length <= 200);
+    if (cands.length < 2) {
+      vscode.window.showWarningMessage('BioLint: select two primers (multi-cursor) or open a file with ≥2 primer candidates.');
+      return;
+    }
+    const pick = async (place: string): Promise<string | undefined> => {
+      const c = await vscode.window.showQuickPick(
+        cands.map(x => ({ label: x.id, description: `${x.seq.length} nt`, seq: x.seq })),
+        { placeHolder: `Select ${place} primer` },
+      );
+      return c?.seq;
+    };
+    fwd = (await pick('forward')) ?? '';
+    if (!fwd) { return; }
+    rev = (await pick('reverse')) ?? '';
+    if (!rev) { return; }
+  }
+  const res = analyzePair(fwd, rev, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg), cfg.pairMaxDeltaTm);
+  const choice = await vscode.window.showInformationMessage(
+    res.ok ? `✅ Primer pair PASS — ΔTm ${res.deltaTm}°C, heterodimer ΔG ${res.heteroDimerDG} kcal/mol.` : `❌ Primer pair FAIL — ΔTm ${res.deltaTm}°C, heterodimer ΔG ${res.heteroDimerDG} kcal/mol.`,
+    { modal: false, detail: res.report },
+    'Copy report',
+  );
+  if (choice === 'Copy report') { await vscode.env.clipboard.writeText(res.report); }
+}
+
+/** v1.1.0: codon optimization for the configured (or picked) host. */
+export async function cmdOptimizeCodons(): Promise<void> {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed) { return; }
+  const cfg = getConfig();
+  let range: vscode.Range | undefined;
+  let seq = '';
+  if (!ed.selection.isEmpty) {
+    range = new vscode.Range(ed.selection.start, ed.selection.end);
+    seq = ed.document.getText(range);
+  } else {
+    range = dnaRangeAt(ed.document, ed.selection.active);
+    if (range) { seq = ed.document.getText(range); }
+  }
+  const cleanSeq = seq.toUpperCase().replace(/[^ACGTU]/g, '').replace(/U/g, 'T');
+  if (cleanSeq.length < 30) {
+    vscode.window.showWarningMessage('BioLint: select a coding sequence (≥30 nt, ideally a full ORF) to optimize codons.');
+    return;
+  }
+  const hostPick = await vscode.window.showQuickPick(
+    (Object.keys(HOST_TABLES) as (keyof typeof HOST_TABLES)[]).map(h => ({
+      label: HOST_TABLES[h].name,
+      description: h === cfg.codonHost ? 'configured default' : '',
+      id: h,
+    })),
+    { placeHolder: 'Expression host for codon optimization' },
+  );
+  if (!hostPick) { return; }
+  const customPath = vscode.workspace.getConfiguration('biolint').get<string>('codon.customTablePath', '');
+  const table = loadCodonTable(hostPick.id, customPath);
+  const res = optimizeCodons(cleanSeq, table);
+  const apply = await vscode.window.showInformationMessage(
+    `BioLint codon optimization (${table.name}): CAI ${res.caiBefore} → ${res.caiAfter}, ${res.changes} codons changed. Apply?`,
+    { modal: false, detail: res.notes.join('\n') },
+    'Apply optimization',
+    'Copy to clipboard',
+  );
+  if (apply === 'Apply optimization' && range) {
+    await ed.edit(b => b.replace(range!, res.optimized));
+  } else if (apply === 'Copy to clipboard') {
+    await vscode.env.clipboard.writeText(res.optimized);
   }
 }

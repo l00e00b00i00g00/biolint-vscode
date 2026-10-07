@@ -10,11 +10,13 @@
  */
 import * as vscode from 'vscode';
 import {
-  extractSegments, findInvalidChars, stripToPure, DnaSegment,
-  gcContent, analyzePrimer, detectBrokenORFs,
+  extractSegments, findInvalidChars, stripToPure, reverseComplement, DnaSegment,
+  gcContent, analyzePrimer, detectBrokenORFs, findORFs,
   loadLocalThreatDb, screenSequence, screenEnterprise,
+  cai, findRareCodons, HOST_TABLES, loadCodonTable,
+  parseGenBankAnnotations, validateGenBank,
 } from './bio';
-import { getConfig } from './config';
+import { getConfig, tmOptionsOf } from './config';
 import { getToken } from './enterprise';
 
 export const CODE = {
@@ -23,6 +25,8 @@ export const CODE = {
   hairpin: 'biolint.hairpin',
   dimer: 'biolint.self-dimer',
   brokenOrf: 'biolint.broken-orf',
+  codon: 'biolint.codon-cai',
+  gbAnnotation: 'biolint.genbank-annotation',
   rejected: 'biolint.bioguard-rejected',
   flagged: 'biolint.bioguard-flagged',
   suggestion: 'biolint.primer-suggestion',
@@ -103,6 +107,7 @@ export class BioLinter {
       const { gcWindows: w, skipped: s } = this.lintThermo(doc, seg, diags, cfg, gcWindows);
       gcWindows += w; gcWindowsSkipped += s;
       this.lintOrfs(doc, seg, diags, cfg);
+      this.lintCodons(doc, seg, diags, cfg);
       if (db.entries.length > 0) {
         const { pure, map } = stripToPure(seg.raw);
         if (pure.length >= 8) {
@@ -115,6 +120,7 @@ export class BioLinter {
       }
       if (diags.length > MAX_DIAGS) { break; }
     }
+    this.lintGenBankAnnotations(doc, text, diags);
     if (gcWindowsSkipped > 0 && segments.length > 0) {
       const first = segments[0];
       diags.push(this.info(
@@ -215,6 +221,7 @@ export class BioLinter {
     const { pure, map } = stripToPure(seg.raw);
     if (pure.length < cfg.minPrimerLength) { return { gcWindows, skipped }; }
     const pureRange = (ps: number, pe: number): vscode.Range => this.rangeForPure(doc, seg, map, ps, pe);
+    const tmOpts = tmOptionsOf(cfg);
 
     const emitGcWindow = (ps: number, pe: number, gcPct: number, win: number): void => {
       if (gcWindowsSoFar + gcWindows >= MAX_GC_WINDOW_DIAGS) { skipped++; return; }
@@ -241,7 +248,7 @@ export class BioLinter {
       }
       return { gcWindows, skipped };
     }
-    const a = analyzePrimer(pure, cfg.gcWarnLow, cfg.gcWarnHigh);
+    const a = analyzePrimer(pure, cfg.gcWarnLow, cfg.gcWarnHigh, tmOpts);
     if (a.gcFlag !== 'normal') {
       const d = new vscode.Diagnostic(
         pureRange(0, pure.length),
@@ -252,9 +259,11 @@ export class BioLinter {
       push(d);
     }
     if (a.hairpinDG <= -5) {
+      // v1.1.0: highlight the stem itself, not the whole primer.
+      const stem = a.hairpinStem;
       const d = new vscode.Diagnostic(
-        pureRange(0, pure.length),
-        `BioLint: hairpin ΔG ${a.hairpinDG} kcal/mol — unstable secondary structure (see hover for details).`,
+        stem ? pureRange(stem.start, stem.start + stem.length) : pureRange(0, pure.length),
+        `BioLint: hairpin ΔG ${a.hairpinDG} kcal/mol (stem ${stem ? `${stem.length} nt, loop ${stem.loop}` : 'detected'}) — unstable secondary structure (see hover for details).`,
         vscode.DiagnosticSeverity.Warning,
       );
       d.code = CODE.hairpin; d.source = 'biolint';
@@ -302,6 +311,77 @@ export class BioLinter {
         vscode.DiagnosticSeverity.Warning,
       );
       d.code = CODE.brokenOrf;
+      d.source = 'biolint';
+      out.push(d);
+      if (out.length > MAX_DIAGS) { return; }
+    }
+  }
+
+  /** v1.1.0: codon optimality — CAI + rare codons on complete ORFs (blue hints). */
+  private lintCodons(
+    doc: vscode.TextDocument, seg: DnaSegment,
+    out: vscode.Diagnostic[], cfg: ReturnType<typeof getConfig>,
+  ): void {
+    const { pure, map } = stripToPure(seg.raw);
+    if (pure.length < 60) { return; }
+    const table = loadCodonTable(cfg.codonHost, vscode.workspace.getConfiguration('biolint').get<string>('codon.customTablePath', ''));
+    let emitted = 0;
+    for (const o of findORFs(pure, cfg.minOrfLength)) {
+      if (!o.complete || emitted >= 5) { break; }
+      const slice = pure.slice(o.start, o.end);
+      const coding = o.strand === 1 ? slice : reverseComplement(slice);
+      const value = cai(coding, table);
+      if (value < cfg.codonCaiWarnBelow) {
+        const rare = findRareCodons(coding, table).length;
+        const d = new vscode.Diagnostic(
+          this.rangeForPure(doc, seg, map, o.start, Math.min(o.end, o.start + 30)),
+          `BioLint suggestion: ORF CAI ${value.toFixed(2)} for ${table.name} (${rare} rare codons) — run “BioLint: Optimize Codons for Host”.`,
+          vscode.DiagnosticSeverity.Information,
+        );
+        d.code = CODE.codon;
+        d.source = 'biolint';
+        out.push(d);
+        emitted++;
+      }
+      if (out.length > MAX_DIAGS) { return; }
+    }
+  }
+
+  /** v1.1.0: GenBank annotation validation (LOCUS / CDS / translation). */
+  private lintGenBankAnnotations(doc: vscode.TextDocument, text: string, out: vscode.Diagnostic[]): void {
+    const name = doc.fileName.toLowerCase();
+    const isGb = doc.languageId === 'biogenbank' ||
+      name.endsWith('.gb') || name.endsWith('.gbk') || name.endsWith('.genbank') || name.endsWith('.gbf');
+    if (!isGb) { return; }
+    const ann = parseGenBankAnnotations(text);
+    if (!ann.hasOrigin) { return; }
+    // Concatenated ORIGIN letters in order = first genbank-origin segment's raw.
+    const segments = extractSegments(doc.fileName, text, 1);
+    const origin = segments.find(s => s.kind === 'genbank-origin');
+    if (!origin) { return; }
+    for (const issue of validateGenBank(origin.raw, ann)) {
+      let range: vscode.Range;
+      if (issue.seqPos >= 1 && issue.seqPos - 1 < origin.raw.length) {
+        const rs = issue.seqPos - 1;
+        range = this.rangeForRaw(doc, origin, rs, Math.min(origin.raw.length, rs + Math.max(1, issue.seqLen)));
+      } else {
+        // Anchor at the feature/LOCUS line.
+        try {
+          const line = doc.lineAt(doc.positionAt(Math.min(issue.lineOffset, text.length)).line);
+          range = line.range;
+        } catch {
+          range = new vscode.Range(0, 0, 0, 1);
+        }
+      }
+      const sev = issue.kind === 'cds-bounds'
+        ? vscode.DiagnosticSeverity.Error
+        : vscode.DiagnosticSeverity.Warning;
+      const d = new vscode.Diagnostic(
+        range,
+        `BioLint: GenBank annotation — ${issue.message}`,
+        sev,
+      );
+      d.code = CODE.gbAnnotation;
       d.source = 'biolint';
       out.push(d);
       if (out.length > MAX_DIAGS) { return; }

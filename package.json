@@ -2,7 +2,7 @@
   "name": "biolint-vscode",
   "displayName": "BioLint — DNA Linter for Synthetic Biology",
   "description": "Real-time linter for DNA: GC%, Tm (SantaLucia), ΔG hairpins, broken ORFs, restriction sites, BioGuard biosafety screening. Local-first, Enterprise-ready.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "publisher": "bioguard",
   "license": "Apache-2.0",
   "repository": {
@@ -163,6 +163,14 @@
         "title": "BioLint: Generate Reverse Complement"
       },
       {
+        "command": "biolint.checkPrimerPair",
+        "title": "BioLint: QC Primer Pair (ΔTm + Heterodimer)"
+      },
+      {
+        "command": "biolint.optimizeCodons",
+        "title": "BioLint: Optimize Codons for Host (CAI)"
+      },
+      {
         "command": "biolint.openCommandCenter",
         "title": "BioLint: Open Enterprise Command Center"
       },
@@ -203,6 +211,14 @@
         {
           "command": "biolint.reverseComplement",
           "group": "biolint@2"
+        },
+        {
+          "command": "biolint.checkPrimerPair",
+          "group": "biolint@2"
+        },
+        {
+          "command": "biolint.optimizeCodons",
+          "group": "biolint@2"
         }
       ],
       "commandPalette": [
@@ -232,6 +248,12 @@
         },
         {
           "command": "biolint.reverseComplement"
+        },
+        {
+          "command": "biolint.checkPrimerPair"
+        },
+        {
+          "command": "biolint.optimizeCodons"
         },
         {
           "command": "biolint.openCommandCenter"
@@ -294,6 +316,47 @@
           "type": "number",
           "default": 350,
           "description": "Debounce delay (ms) before re-linting after edits."
+        },
+        "biolint.tm.primerConcNM": {
+          "type": "number",
+          "default": 250,
+          "description": "Primer strand concentration (nM) for SantaLucia Tm."
+        },
+        "biolint.tm.naConcMM": {
+          "type": "number",
+          "default": 50,
+          "description": "Monovalent salt Na+ (mM) for SantaLucia Tm salt correction."
+        },
+        "biolint.tm.mgConcMM": {
+          "type": "number",
+          "default": 0,
+          "description": "Mg++ (mM) for Tm correction (0 = disabled)."
+        },
+        "biolint.codonHost": {
+          "type": "string",
+          "enum": ["ecoli", "yeast", "human"],
+          "default": "ecoli",
+          "description": "Expression host for codon optimality (CAI) checks."
+        },
+        "biolint.codon.caiWarnBelow": {
+          "type": "number",
+          "default": 0.65,
+          "description": "Complete ORFs with CAI below this get an optimization hint."
+        },
+        "biolint.codon.customTablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional JSON codon table {codon: freqPerThousand} overriding built-ins."
+        },
+        "biolint.pair.maxDeltaTm": {
+          "type": "number",
+          "default": 5,
+          "description": "Primer-pair QC fails when |Tm_fwd − Tm_rev| exceeds this (°C)."
+        },
+        "biolint.enableInlayHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline Tm · GC% hints after DNA runs."
         }
       }
     }

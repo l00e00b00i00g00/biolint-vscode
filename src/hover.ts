@@ -4,7 +4,7 @@
  */
 import * as vscode from 'vscode';
 import { analyzePrimer } from './bio';
-import { getConfig } from './config';
+import { getConfig, tmOptionsOf } from './config';
 
 export class BioHoverProvider implements vscode.HoverProvider {
   provideHover(doc: vscode.TextDocument, pos: vscode.Position): vscode.Hover | undefined {
@@ -34,7 +34,7 @@ export class BioHoverProvider implements vscode.HoverProvider {
 
   private renderHover(token: string, range: { start: { line: number; character: number }; end: { line: number; character: number } }): vscode.Hover {
     const cfg = getConfig();
-    const a = analyzePrimer(token, cfg.gcWarnLow, cfg.gcWarnHigh);
+    const a = analyzePrimer(token, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg));
     const riskEmoji = a.foldRisk === 'high' ? '🔴' : a.foldRisk === 'medium' ? '🟠' : '🟢';
     const md = new vscode.MarkdownString();
     md.isTrusted = true;

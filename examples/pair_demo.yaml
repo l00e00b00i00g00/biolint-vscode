@@ -1,0 +1,8 @@
+# Primer-pair QC demo — select two primers (multi-cursor) then run
+# "BioLint: QC Primer Pair", or pick them from the quickpick.
+pcr_matched:
+  forward: "CGTACGTTAGCCGGATCAATC"
+  reverse: "TTAGCCGGATCGTACGATCGT"
+pcr_mismatched:
+  bad_forward: "ATATATATATATATAT"
+  bad_reverse: "GCGCGCGCGCGCGCGCGCGCGCGC"

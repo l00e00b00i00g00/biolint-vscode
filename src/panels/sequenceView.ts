@@ -7,7 +7,7 @@ import {
   extractSegments, gcContent, gcProfile, findORFs, findRestrictionSites,
   screenSequence, loadLocalThreatDb, analyzePrimer, stripToPure,
 } from '../bio';
-import { getConfig } from '../config';
+import { getConfig, tmOptionsOf } from '../config';
 
 export class SequenceViewPanel {
   private static current: vscode.WebviewPanel | undefined;
@@ -64,7 +64,7 @@ export class SequenceViewPanel {
       const orfs = findORFs(pure, cfg.minOrfLength).slice(0, 40);
       const sites = findRestrictionSites(pure).slice(0, 60);
       const screen = screenSequence(pure, db.entries, db.version, 'local');
-      const primer = pure.length <= 500 && pure.length > 0 ? analyzePrimer(pure, cfg.gcWarnLow, cfg.gcWarnHigh) : null;
+      const primer = pure.length <= 500 && pure.length > 0 ? analyzePrimer(pure, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg)) : null;
       return {
         id: seg.id, length: pure.length,
         gcPct: Math.round(gc.gcPct * 10) / 10,

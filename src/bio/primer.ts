@@ -3,8 +3,8 @@
  * Single entry point for hover metrics, diagnostics and quick-fixes.
  */
 import { gcContent, gcProfile, classifyGC } from './gc';
-import { santaLuciaTm } from './tm';
-import { hairpinDeltaG, selfDimerDeltaG, foldRisk } from './deltaG';
+import { santaLuciaTm, TmOptions } from './tm';
+import { hairpinDeltaG, selfDimerDeltaG, heteroDimerDeltaG, foldRisk } from './deltaG';
 
 export interface PrimerAnalysis {
   sequence: string;
@@ -15,6 +15,8 @@ export interface PrimerAnalysis {
   tmMethod: string;
   tmWallace: number;
   hairpinDG: number;
+  /** Pure-coordinate stem location for precise editor highlighting (null when no hairpin). */
+  hairpinStem: { start: number; length: number; loop: number } | null;
   selfDimerDG: number;
   foldRisk: 'low' | 'medium' | 'high';
   gcClamp: number; // G/C count in last 5 nt (ideal 1-2)
@@ -35,10 +37,10 @@ export function maxHomopolymerRun(seq: string): number {
   return seq.length === 0 ? 0 : best;
 }
 
-export function analyzePrimer(seqRaw: string, gcLow = 35, gcHigh = 65): PrimerAnalysis {
+export function analyzePrimer(seqRaw: string, gcLow = 35, gcHigh = 65, tmOpts: TmOptions = {}): PrimerAnalysis {
   const sequence = seqRaw.toUpperCase().replace(/U/g, 'T');
   const gc = gcContent(sequence);
-  const tm = santaLuciaTm(sequence);
+  const tm = santaLuciaTm(sequence, tmOpts);
   const hp = hairpinDeltaG(sequence);
   const sd = selfDimerDeltaG(sequence);
   const risk = foldRisk(hp.deltaG, sd.deltaG);
@@ -99,7 +101,9 @@ export function analyzePrimer(seqRaw: string, gcLow = 35, gcHigh = 65): PrimerAn
     sequence, length: sequence.length,
     gcPct: Math.round(gc.gcPct * 10) / 10, gcFlag,
     tm: tm.tmUsed, tmMethod: tm.method, tmWallace: tm.tmWallace,
-    hairpinDG: hp.deltaG, selfDimerDG: sd.deltaG, foldRisk: risk,
+    hairpinDG: hp.deltaG,
+    hairpinStem: hp.found ? { start: hp.stemStart, length: hp.stemLength, loop: hp.loopLength } : null,
+    selfDimerDG: sd.deltaG, foldRisk: risk,
     gcClamp, maxHomopolymer: maxHomo, nCount,
     score: Math.max(0, Math.min(100, score)),
     suggestions, gcSpark,
@@ -171,4 +175,52 @@ export function optimizePrimer(seqRaw: string): OptimizationResult {
   const after = analyzePrimer(arr.join(''));
   if (changes.length === 0) { changes.push('Primer already near-optimal — no changes applied.'); }
   return { optimized: arr.join(''), changes, before, after };
+}
+
+export interface PairAnalysis {
+  forward: PrimerAnalysis;
+  reverse: PrimerAnalysis;
+  deltaTm: number;
+  heteroDimerDG: number;
+  ok: boolean;
+  messages: string[];
+  report: string;
+}
+
+/**
+ * Primer-pair QC: Tm matching + heterodimer risk.
+ * Pass through the same gc/tm options so hover, lint and pair checks agree.
+ */
+export function analyzePair(
+  fwdRaw: string, revRaw: string,
+  gcLow = 35, gcHigh = 65, tmOpts: TmOptions = {}, maxDeltaTm = 5,
+): PairAnalysis {
+  const forward = analyzePrimer(fwdRaw, gcLow, gcHigh, tmOpts);
+  const reverse = analyzePrimer(revRaw, gcLow, gcHigh, tmOpts);
+  const deltaTm = Math.round(Math.abs(forward.tm - reverse.tm) * 10) / 10;
+  const hetero = heteroDimerDeltaG(forward.sequence, reverse.sequence);
+  const messages: string[] = [];
+  let ok = true;
+  if (deltaTm > maxDeltaTm) {
+    ok = false;
+    messages.push(`ΔTm ${deltaTm}°C exceeds ${maxDeltaTm}°C — primers will not anneal together efficiently; rebalance lengths.`);
+  } else {
+    messages.push(`ΔTm ${deltaTm}°C within ${maxDeltaTm}°C — matched pair.`);
+  }
+  if (hetero.found && hetero.deltaG <= -6) {
+    ok = false;
+    messages.push(`Heterodimer ΔG ${hetero.deltaG} kcal/mol — fwd/rev will dimerize instead of amplifying; redesign 3′ ends.`);
+  } else {
+    messages.push(`Heterodimer ΔG ${hetero.deltaG} kcal/mol — no significant cross-dimer.`);
+  }
+  if (forward.foldRisk === 'high' || reverse.foldRisk === 'high') {
+    ok = false;
+    messages.push('One primer has HIGH folding risk — fix hairpin/self-dimer first (see hover).');
+  }
+  const report =
+    `Primer pair QC — fwd ${forward.length} nt Tm ${forward.tm}°C GC ${forward.gcPct}% (score ${forward.score}) | ` +
+    `rev ${reverse.length} nt Tm ${reverse.tm}°C GC ${reverse.gcPct}% (score ${reverse.score}) | ` +
+    `ΔTm ${deltaTm}°C | heterodimer ΔG ${hetero.deltaG} kcal/mol → ${ok ? 'PASS' : 'FAIL'}\n` +
+    messages.map(m => `• ${m}`).join('\n');
+  return { forward, reverse, deltaTm, heteroDimerDG: hetero.deltaG, ok, messages, report };
 }

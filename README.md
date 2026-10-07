@@ -6,11 +6,15 @@ Real-time linting, thermodynamic analysis and biosafety screening for DNA sequen
 
 | Signal | Severity | What it catches |
 |---|---|---|
-| 🔴 Critical | Error | Restricted-agent pattern (`REJECTED` / `FLAGGED_FOR_REVIEW`) with regulation ref (IIGS / CDC) |
-| 🟠 Thermodynamic | Warning | Abnormal GC%, hairpin ΔG, self-dimer ΔG, broken ORFs (orphan start/stop) |
-| 🔵 Optimization | Info | GC clamp, homopolymers, ambiguous N, primer length → 1-click fixes |
+| 🔴 Critical | Error | Restricted-agent pattern (`REJECTED` / `FLAGGED_FOR_REVIEW`) with regulation ref (IIGS / CDC) · GenBank CDS out of bounds |
+| 🟠 Thermodynamic | Warning | Abnormal GC%, hairpin ΔG (stem highlighted), self-dimer ΔG, broken ORFs · GenBank LOCUS/CDS/translation mismatches |
+| 🔵 Optimization | Info | GC clamp, homopolymers, ambiguous N, primer length → 1-click fixes · low-CAI ORFs → codon optimization |
 
-- **Hover provider** — Tm (SantaLucia 1998), GC%, ΔG hairpin/self-dimer, folding risk, GC clamp, 1-click *Optimize* / *Reverse complement*.
+- **Hover provider** — Tm (SantaLucia 1998, configurable salt/primer conditions), GC%, ΔG hairpin/self-dimer, folding risk, GC clamp, 1-click *Optimize* / *Reverse complement*.
+- **Inlay hints** — inline `Tm · GC%` after DNA runs (toggle `biolint.enableInlayHints`).
+- **Primer-pair QC** (`BioLint: QC Primer Pair`) — ΔTm matching + heterodimer ΔG from two selections or quickpick.
+- **Codon optimization** (`BioLint: Optimize Codons for Host`) — CAI + rare codons for *E. coli* / yeast / human (custom JSON tables supported), blue hints on low-CAI ORFs.
+- **GenBank validation** — LOCUS length vs ORIGIN, CDS bounds/start/stop/frame, `/translation` agreement (both strands, `join()` supported).
 - **Hybrid mode** (status bar): `Local (offline)` = embedded engine + `.bioguard/` lists, no data leaves the machine · `Enterprise` = OAuth2/JWT → `app.bioguard.ai` threat feed + Command Center deep-links.
 - **Sequence visualizer** (`BioLint: Show Sequence Visualizer`) — ORF map, restriction sites (24 enzymes), GC profile, biosafety verdict, certificate export, SynthFlow Studio bridge.
 - **Compliance** — right-click any `.fa/.gb/.fastq/.yaml/.py/.ts` → *Export Compliance Certificate (SHA-256)* / *Verify File Hash*.
@@ -77,6 +81,7 @@ Bundled patterns are **synthetic DEMO markers** (not real pathogen sequence) for
 - `BioLint: Install Git Pre-commit Biosafety Hook`
 - `BioLint: Switch Mode (Local / Enterprise)` · Login / Logout
 - `BioLint: Optimize This Primer` · `Generate Reverse Complement`
+- `BioLint: QC Primer Pair (ΔTm + Heterodimer)` · `Optimize Codons for Host (CAI)`
 - `BioLint: Open Enterprise Command Center` · `Open in SynthFlow Studio`
 
 ## Distribution

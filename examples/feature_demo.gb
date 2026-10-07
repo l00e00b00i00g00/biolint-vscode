@@ -1,0 +1,14 @@
+LOCUS       FEATDEMO                 120 bp    DNA     synthetic       07-OCT-2026
+DEFINITION  GenBank annotation validation demo: one clean CDS, one bad start.
+ACCESSION   FEATDEMO
+FEATURES             Location/Qualifiers
+     CDS             1..90
+                     /label="good_orf"
+                     /translation="MAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+     CDS             95..118
+                     /label="bad_start_orf"
+                     /translation="MAAAAAA"
+ORIGIN
+         1 atggctgctg ctgctgctgc tgctgctgct gctgctgctg ctgctgctgc tgctgctgct
+        61 gctgctgctg ctgctgctgc tgctgcttaa cgatcgatcg atcgatcgat cgatcgatcg
+//

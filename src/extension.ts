@@ -2,7 +2,8 @@
 import * as vscode from 'vscode';
 import { BioLinter } from './diagnostics';
 import { BioHoverProvider } from './hover';
-import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement } from './codeActions';
+import { BioInlayProvider } from './inlay';
+import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement, cmdCheckPrimerPair, cmdOptimizeCodons } from './codeActions';
 import { ModeStatusBar, cmdSwitchMode } from './statusBar';
 import { loginEnterprise, logoutEnterprise, openCommandCenter, openSynthFlowStudio, sha256HexSync } from './enterprise';
 import { SequenceViewPanel } from './panels/sequenceView';
@@ -45,6 +46,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }),
 
     vscode.languages.registerHoverProvider(SELECTOR, new BioHoverProvider()),
+    vscode.languages.registerInlayHintsProvider(SELECTOR, new BioInlayProvider()),
     vscode.languages.registerCodeActionsProvider(SELECTOR, new BioCodeActionProvider(), {
       providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Empty],
     }),
@@ -64,6 +66,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('biolint.optimizePrimer', (arg?: unknown) => cmdOptimizePrimer(arg)),
     vscode.commands.registerCommand('biolint.reverseComplement', (arg?: unknown) => cmdReverseComplement(arg)),
+    vscode.commands.registerCommand('biolint.checkPrimerPair', () => cmdCheckPrimerPair()),
+    vscode.commands.registerCommand('biolint.optimizeCodons', () => cmdOptimizeCodons()),
     vscode.commands.registerCommand('biolint.openCommandCenter', async () => {
       const hash = hashOfActive();
       const verdict = verdictOfActive();
