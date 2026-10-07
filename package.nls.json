@@ -14,6 +14,7 @@
   "command.biolint.exportAuditLog": "BioLint: Export Screening Audit Log",
   "command.biolint.showOutput": "BioLint: Show Output Channel",
   "command.biolint.diffConstructs": "BioLint: Diff Two Constructs (Mutations)",
+  "command.biolint.designPrimers": "BioLint: Design Primers for Target (Auto-design)",
   "command.biolint.openCommandCenter": "BioLint: Open Enterprise Command Center",
   "command.biolint.openSynthFlowStudio": "BioLint: Open in SynthFlow Studio (Visual Design)",
   "walkthrough.biolint.title": "Get started with BioLint",

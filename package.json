@@ -2,7 +2,7 @@
   "name": "biolint-vscode",
   "displayName": "BioLint — DNA Linter for Synthetic Biology",
   "description": "Real-time linter for DNA: GC%, Tm (SantaLucia), ΔG hairpins, broken ORFs, restriction sites, BioGuard biosafety screening. Local-first, Enterprise-ready.",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "publisher": "bioguard",
   "license": "Apache-2.0",
   "repository": {
@@ -49,20 +49,44 @@
     "languages": [
       {
         "id": "biofasta",
-        "aliases": ["FASTA", "biofasta"],
-        "extensions": [".fa", ".fasta", ".fna", ".ffn", ".faa", ".frn"],
+        "aliases": [
+          "FASTA",
+          "biofasta"
+        ],
+        "extensions": [
+          ".fa",
+          ".fasta",
+          ".fna",
+          ".ffn",
+          ".faa",
+          ".frn"
+        ],
         "configuration": "./language-configuration.json"
       },
       {
         "id": "biogenbank",
-        "aliases": ["GenBank", "biogenbank"],
-        "extensions": [".gb", ".gbk", ".genbank", ".gbf"],
+        "aliases": [
+          "GenBank",
+          "biogenbank"
+        ],
+        "extensions": [
+          ".gb",
+          ".gbk",
+          ".genbank",
+          ".gbf"
+        ],
         "configuration": "./language-configuration.json"
       },
       {
         "id": "biofastq",
-        "aliases": ["FASTQ", "biofastq"],
-        "extensions": [".fastq", ".fq"],
+        "aliases": [
+          "FASTQ",
+          "biofastq"
+        ],
+        "extensions": [
+          ".fastq",
+          ".fq"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -107,19 +131,25 @@
             "id": "biolint.walkthrough.lint",
             "title": "%walkthrough.biolint.lint.title%",
             "description": "%walkthrough.biolint.lint.description%",
-            "media": { "path": "media/walkthrough-lint.md" }
+            "media": {
+              "path": "media/walkthrough-lint.md"
+            }
           },
           {
             "id": "biolint.walkthrough.hover",
             "title": "%walkthrough.biolint.hover.title%",
             "description": "%walkthrough.biolint.hover.description%",
-            "media": { "path": "media/walkthrough-hover.md" }
+            "media": {
+              "path": "media/walkthrough-hover.md"
+            }
           },
           {
             "id": "biolint.walkthrough.certify",
             "title": "%walkthrough.biolint.certify.title%",
             "description": "%walkthrough.biolint.certify.description%",
-            "media": { "path": "media/walkthrough-certify.md" }
+            "media": {
+              "path": "media/walkthrough-certify.md"
+            }
           }
         ]
       }
@@ -185,6 +215,10 @@
       {
         "command": "biolint.diffConstructs",
         "title": "%command.biolint.diffConstructs%"
+      },
+      {
+        "command": "biolint.designPrimers",
+        "title": "%command.biolint.designPrimers%"
       },
       {
         "command": "biolint.openCommandCenter",
@@ -284,6 +318,9 @@
           "command": "biolint.diffConstructs"
         },
         {
+          "command": "biolint.designPrimers"
+        },
+        {
           "command": "biolint.openCommandCenter"
         },
         {
@@ -296,7 +333,10 @@
       "properties": {
         "biolint.mode": {
           "type": "string",
-          "enum": ["local", "enterprise"],
+          "enum": [
+            "local",
+            "enterprise"
+          ],
           "default": "local",
           "description": "%config.biolint.mode%"
         },
@@ -362,7 +402,11 @@
         },
         "biolint.codonHost": {
           "type": "string",
-          "enum": ["ecoli", "yeast", "human"],
+          "enum": [
+            "ecoli",
+            "yeast",
+            "human"
+          ],
           "default": "ecoli",
           "description": "%config.biolint.codonHost%"
         },
@@ -399,8 +443,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "tsc --noEmit -p ./",
-    "test": "npm run test:unit",
+    "test": "npm run test:unit && npm run test:integration",
     "test:unit": "tsc -p ./ && node ./out/bio/__tests__/run.js",
+    "test:integration": "node ./out/test/runTest.js",
     "package": "vsce package --no-dependencies",
     "package:vsix": "npm run compile && npx --yes @vscode/vsce package --no-dependencies"
   },
@@ -408,6 +453,8 @@
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^3.1.0",
+    "mocha": "^12.0.3",
     "typescript": "^5.3.3"
   }
 }

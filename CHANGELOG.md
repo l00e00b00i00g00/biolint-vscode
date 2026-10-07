@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0 — 2026-10-07 (Enterprise-grade)
+- Architecture: vscode-free `analyze.ts` core shared by main thread + worker_thread (>500 KB files, 20 s timeout fallback)
+- Primer auto-design command (target selection → ranked pairs → insert/copy FASTA)
+- 5 Electron integration tests (activation, real diagnostics with exact codes, commands, config) + CI via xvfb
+- Enterprise Screen API contract (`docs/enterprise-api.md`) for backend implementation
+
 ## 1.2.0 — 2026-10-07 (Lab workflow)
 - Construct diff: Needleman-Wunsch SNP/indel report webview with click-to-reveal in both files
 - Local screening audit trail (JSONL, rotated) + open/export commands + BioLint output channel with timings (`biolint.debug`)

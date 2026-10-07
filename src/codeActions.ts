@@ -2,7 +2,8 @@
 import * as vscode from 'vscode';
 import {
   optimizePrimer, reverseComplement, analyzePair, optimizeCodons,
-  HOST_TABLES, loadCodonTable, extractSegments,
+  HOST_TABLES, loadCodonTable, extractSegments, stripToPure,
+  designPrimers, pairReport,
 } from './bio';
 import { getConfig, tmOptionsOf } from './config';
 import { CODE } from './diagnostics';
@@ -193,7 +194,78 @@ export async function cmdCheckPrimerPair(): Promise<void> {
   if (choice === 'Copy report') { await vscode.env.clipboard.writeText(res.report); }
 }
 
-/** v1.1.0: codon optimization for the configured (or picked) host. */
+/** v2.0: de-novo primer design for the selected target region (or whole insert). */
+export async function cmdDesignPrimers(): Promise<void> {
+  const ed = vscode.window.activeTextEditor;
+  if (!ed) { return; }
+  const cfg = getConfig();
+  const doc = ed.document;
+  const segments = extractSegments(doc.fileName, doc.getText(), cfg.minPrimerLength)
+    .map(s => ({ seg: s, ...stripToPure(s.raw) }))
+    .filter(s => s.pure.length >= 50);
+  if (segments.length === 0) {
+    vscode.window.showWarningMessage('BioLint: no construct (≥50 nt) found in this file.');
+    return;
+  }
+  // Map the editor selection onto pure coordinates of its segment.
+  let chosen = segments.slice().sort((a, b) => b.pure.length - a.pure.length)[0];
+  let ts = 0, te = chosen.pure.length;
+  if (!ed.selection.isEmpty) {
+    const startOff = doc.offsetAt(ed.selection.start);
+    const endOff = doc.offsetAt(ed.selection.end);
+    const hit = segments.find(s => {
+      const o = s.seg.seqToDoc;
+      return o.length > 0 && startOff >= o[0] && endOff <= o[o.length - 1] + 1;
+    });
+    if (!hit) {
+      vscode.window.showWarningMessage('BioLint: select a target inside a DNA sequence to design primers for it.');
+      return;
+    }
+    chosen = hit;
+    const rawToPure = new Map<number, number>();
+    hit.map.forEach((rawIdx, pureIdx) => { if (!rawToPure.has(rawIdx)) { rawToPure.set(rawIdx, pureIdx); } });
+    const toPure = (off: number): number => {
+      const o = hit.seg.seqToDoc;
+      let lo = 0, hi = o.length - 1, ans = 0;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (o[mid] <= off) { ans = mid; lo = mid + 1; } else { hi = mid - 1; }
+      }
+      return rawToPure.get(ans) ?? 0;
+    };
+    ts = toPure(startOff);
+    te = Math.max(ts + 10, toPure(endOff));
+  }
+  const pairs = designPrimers(chosen.pure, ts, te, {
+    tmOpts: tmOptionsOf(cfg), maxDeltaTm: cfg.pairMaxDeltaTm, topN: 3,
+  });
+  if (pairs.length === 0) {
+    vscode.window.showWarningMessage('BioLint: no primer pair satisfies the constraints here — widen the flanks or relax GC/Tm settings.');
+    return;
+  }
+  const pick = await vscode.window.showQuickPick(
+    pairs.map((p, i) => ({
+      label: `Pair ${i + 1} — product ${p.productSize} nt · ΔTm ${p.deltaTm}°C · score ${p.score}`,
+      description: `FWD Tm ${p.fwd.tm}°C · REV Tm ${p.rev.tm}°C · het ${p.heteroDimerDG}`,
+      detail: pairReport(p, ts, te),
+      pair: p,
+    })),
+    { placeHolder: `Primers for ${chosen.seg.id} target ${ts + 1}..${te}` },
+  );
+  if (!pick) { return; }
+  const fasta = `>biolint_fwd_${chosen.seg.id} Tm${pick.pair.fwd.tm}C\n${pick.pair.fwd.sequence}\n` +
+    `>biolint_rev_${chosen.seg.id} Tm${pick.pair.rev.tm}C\n${pick.pair.rev.sequence}\n`;
+  const action = await vscode.window.showInformationMessage(
+    'BioLint designed primers — insert as FASTA or copy?',
+    { modal: false, detail: pick.detail },
+    'Insert below', 'Copy FASTA',
+  );
+  if (action === 'Insert below') {
+    await ed.edit(b => b.insert(ed.selection.end, `\n${fasta}`));
+  } else if (action === 'Copy FASTA') {
+    await vscode.env.clipboard.writeText(fasta);
+  }
+}
 export async function cmdOptimizeCodons(): Promise<void> {
   const ed = vscode.window.activeTextEditor;
   if (!ed) { return; }

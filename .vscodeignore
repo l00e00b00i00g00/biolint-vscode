@@ -2,6 +2,7 @@
 .vscode-test/**
 src/**
 out/**/__tests__/**
+out/test/**
 .gitignore
 tsconfig.json
 webpack.config.js

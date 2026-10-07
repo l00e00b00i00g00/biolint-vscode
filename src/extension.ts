@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { BioLinter } from './diagnostics';
 import { BioHoverProvider } from './hover';
 import { BioInlayProvider } from './inlay';
-import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement, cmdCheckPrimerPair, cmdOptimizeCodons } from './codeActions';
+import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement, cmdCheckPrimerPair, cmdOptimizeCodons, cmdDesignPrimers } from './codeActions';
 import { ModeStatusBar, FileSummary, cmdSwitchMode } from './statusBar';
 import { AuditLog } from './auditLog';
 import { loginEnterprise, logoutEnterprise, openCommandCenter, openSynthFlowStudio, sha256HexSync } from './enterprise';
@@ -87,6 +87,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('biolint.reverseComplement', (arg?: unknown) => cmdReverseComplement(arg)),
     vscode.commands.registerCommand('biolint.checkPrimerPair', () => cmdCheckPrimerPair()),
     vscode.commands.registerCommand('biolint.optimizeCodons', () => cmdOptimizeCodons()),
+    vscode.commands.registerCommand('biolint.designPrimers', () => cmdDesignPrimers()),
     vscode.commands.registerCommand('biolint.openAuditLog', () => audit.open()),
     vscode.commands.registerCommand('biolint.exportAuditLog', () => audit.export()),
     vscode.commands.registerCommand('biolint.showOutput', () => output.show()),

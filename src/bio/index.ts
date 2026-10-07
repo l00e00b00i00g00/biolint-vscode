@@ -9,3 +9,4 @@ export * from './bioguard';
 export * from './codon';
 export * from './genbank';
 export * from './align';
+export * from './design';

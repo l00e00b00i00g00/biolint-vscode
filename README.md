@@ -16,6 +16,9 @@ Real-time linting, thermodynamic analysis and biosafety screening for DNA sequen
 - **Codon optimization** (`BioLint: Optimize Codons for Host`) — CAI + rare codons for *E. coli* / yeast / human (custom JSON tables supported), blue hints on low-CAI ORFs.
 - **GenBank validation** — LOCUS length vs ORIGIN, CDS bounds/start/stop/frame, `/translation` agreement (both strands, `join()` supported).
 - **Codon lens** — hover any ORF-length DNA for CAI context; status bar shows live `nt · GC% · verdict` per file.
+- **Primer auto-design** (`BioLint: Design Primers for Target`) — top pairs for a selected region or whole insert, insertable as FASTA.
+- **Heavy-file worker** — files >500 KB analyzed in a `worker_thread`, same engine, zero drift; timeout fallback.
+- **Integration-tested** — 5 Electron end-to-end tests (activation, real diagnostics, commands) run in CI via `xvfb`.
 - **Construct diff** (`BioLint: Diff Two Constructs`) — Needleman-Wunsch mutation report (SNP/indel) with click-to-reveal in both files.
 - **Audit trail** — every screening appended to a local JSONL log (`Open/Export Screening Audit Log`); per-file timings in the BioLint output channel (`biolint.debug`).
 - **French localization** — commands, walkthrough and settings fully translated (`package.nls.fr`).

@@ -6,6 +6,7 @@ import { analyzePair } from '../primer';
 import { cai, findRareCodons, optimizeCodons, HOST_TABLES } from '../codon';
 import { parseGenBankAnnotations, validateGenBank, spliceFeature } from '../genbank';
 import { alignConstructs } from '../align';
+import { designPrimers } from '../design';
 import { gcContent, classifyGC } from '../gc';
 import { santaLuciaTm, wallaceTm } from '../tm';
 import { hairpinDeltaG, selfDimerDeltaG } from '../deltaG';
@@ -235,6 +236,23 @@ check('v1.2.0: construct alignment', () => {
   assert.ok(indel.variants.some(v => v.kind === 'insertion' && v.to === 'AA'), `got ${JSON.stringify(indel.variants)}`);
   const del = alignConstructs('ATGCGAAATCGA', 'ATGCGATCGA');
   assert.ok(del.variants.some(v => v.kind === 'deletion' && v.from === 'AA'), `got ${JSON.stringify(del.variants)}`);
+});
+
+check('v2.0: primer auto-design', () => {
+  // Poly-A spacers (unprimable) + one known-good fwd site ending at the
+  // target start and one known-good rev binding site after the target end.
+  const flank5 = 'A'.repeat(100) + 'CGTACGTTAGCCGGATCAATC'; // fwd site ends at ts
+  const target = 'GATTACAGATTACAGATTACAGATTACAGATTACAGATTACAGATTACAGATTACAGATTACA'.slice(0, 60);
+  const flank3 = 'ACGATCGTACGATCCGGCTAA' + 'A'.repeat(99); // rev site starts at te
+  const construct = flank5 + target + flank3;
+  const ts = flank5.length, te = ts + target.length;
+  const pairs = designPrimers(construct, ts, te, { topN: 3 });
+  assert.ok(pairs.length > 0, 'expected ≥1 designed pair');
+  const p = pairs[0];
+  assert.ok(p.deltaTm <= 5, `ΔTm ${p.deltaTm}`);
+  assert.ok(p.productSize >= target.length, `product ${p.productSize}`);
+  assert.ok(p.fwdStart + p.fwd.length <= ts + 5, 'fwd 3′ near target start');
+  assert.ok(p.revStart >= te - 5, 'rev site downstream of target');
 });
 
 check('AUDIT: stripToPure mapping (N/U/gaps/invalid)', () => {
