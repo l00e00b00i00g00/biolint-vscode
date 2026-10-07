@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "FASTA",
+  "scopeName": "source.biofasta",
+  "fileTypes": ["fa", "fasta", "fna", "ffn", "faa", "frn"],
+  "patterns": [
+    { "match": "^>.*$", "name": "entity.name.tag.sequence.biofasta" },
+    { "match": "^;.*$", "name": "comment.line.semicolon.biofasta" },
+    { "match": "[ATGCNatgcnXx\\-\\.]+", "name": "string.unquoted.sequence.biofasta" },
+    { "match": "[^ATGCNatgcnXx\\-\\.\\s>;]+", "name": "invalid.illegal.sequence.biofasta" }
+  ]
+}

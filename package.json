@@ -1,0 +1,317 @@
+{
+  "name": "biolint-vscode",
+  "displayName": "BioLint — DNA Linter for Synthetic Biology",
+  "description": "Real-time linter for DNA: GC%, Tm (SantaLucia), ΔG hairpins, broken ORFs, restriction sites, BioGuard biosafety screening. Local-first, Enterprise-ready.",
+  "version": "1.0.2",
+  "publisher": "bioguard",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bioguard/biolint-vscode.git"
+  },
+  "homepage": "https://github.com/bioguard/biolint-vscode",
+  "bugs": {
+    "url": "https://github.com/bioguard/biolint-vscode/issues"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0b3d2e",
+    "theme": "dark"
+  },
+  "keywords": [
+    "dna",
+    "synthetic-biology",
+    "bioinformatics",
+    "fasta",
+    "genbank",
+    "linter",
+    "biosecurity",
+    "primer"
+  ],
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=18"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Other",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onLanguage:biofasta",
+    "onLanguage:biogenbank",
+    "onLanguage:biofastq",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "biofasta",
+        "aliases": ["FASTA", "biofasta"],
+        "extensions": [".fa", ".fasta", ".fna", ".ffn", ".faa", ".frn"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "biogenbank",
+        "aliases": ["GenBank", "biogenbank"],
+        "extensions": [".gb", ".gbk", ".genbank", ".gbf"],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "biofastq",
+        "aliases": ["FASTQ", "biofastq"],
+        "extensions": [".fastq", ".fq"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "biofasta",
+        "scopeName": "source.biofasta",
+        "path": "./syntaxes/biofasta.tmLanguage.json"
+      },
+      {
+        "language": "biogenbank",
+        "scopeName": "source.biogenbank",
+        "path": "./syntaxes/biogenbank.tmLanguage.json"
+      },
+      {
+        "language": "biofastq",
+        "scopeName": "source.biofastq",
+        "path": "./syntaxes/biofastq.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "biofasta",
+        "path": "./snippets/biolint.code-snippets.json"
+      },
+      {
+        "language": "biogenbank",
+        "path": "./snippets/biolint.code-snippets.json"
+      },
+      {
+        "language": "json",
+        "path": "./snippets/biolint.code-snippets.json"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "biolint.getStarted",
+        "title": "Get started with BioLint",
+        "description": "Lint DNA in real time: diagnostics, primer thermodynamics, visualizer, certificates.",
+        "steps": [
+          {
+            "id": "biolint.walkthrough.lint",
+            "title": "See live DNA diagnostics",
+            "description": "Open examples/demo.fasta, then View → Problems. Red = biosafety/invalid bases, orange = thermo/broken ORFs, blue = optimizations.",
+            "media": { "path": "media/walkthrough-lint.md" }
+          },
+          {
+            "id": "biolint.walkthrough.hover",
+            "title": "Hover any primer",
+            "description": "Hover a DNA run (≥15 nt) for Tm, GC%, ΔG and one-click Optimize / Reverse complement.",
+            "media": { "path": "media/walkthrough-hover.md" }
+          },
+          {
+            "id": "biolint.walkthrough.certify",
+            "title": "Visualize, certify & protect",
+            "description": "Sequence Visualizer, SHA-256 certificates, pre-commit hook, SynthFlow Studio bridge.",
+            "media": { "path": "media/walkthrough-certify.md" }
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "biolint.showSequenceView",
+        "title": "BioLint: Show Sequence Visualizer",
+        "icon": "$(symbol-misc)"
+      },
+      {
+        "command": "biolint.exportCertificate",
+        "title": "BioLint: Export Compliance Certificate (SHA-256)"
+      },
+      {
+        "command": "biolint.verifyHash",
+        "title": "BioLint: Verify File Hash (SHA-256)"
+      },
+      {
+        "command": "biolint.installPreCommitHook",
+        "title": "BioLint: Install Git Pre-commit Biosafety Hook"
+      },
+      {
+        "command": "biolint.switchMode",
+        "title": "BioLint: Switch Mode (Local / Enterprise)"
+      },
+      {
+        "command": "biolint.loginEnterprise",
+        "title": "BioLint: Login to Enterprise (app.bioguard.ai)"
+      },
+      {
+        "command": "biolint.logoutEnterprise",
+        "title": "BioLint: Logout from Enterprise"
+      },
+      {
+        "command": "biolint.optimizePrimer",
+        "title": "BioLint: Optimize This Primer"
+      },
+      {
+        "command": "biolint.reverseComplement",
+        "title": "BioLint: Generate Reverse Complement"
+      },
+      {
+        "command": "biolint.openCommandCenter",
+        "title": "BioLint: Open Enterprise Command Center"
+      },
+      {
+        "command": "biolint.openSynthFlowStudio",
+        "title": "BioLint: Open in SynthFlow Studio (Visual Design)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "biolint.showSequenceView",
+          "group": "navigation@9",
+          "when": "resourceLangId == biofasta || resourceLangId == biogenbank || resourceLangId == biofastq"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "biolint.exportCertificate",
+          "group": "biolint@1",
+          "when": "resourceExtname =~ /\\.(fa|fasta|fna|ffn|faa|frn|gb|gbk|genbank|gbf|fastq|fq|yaml|yml|py|ts)$/i"
+        },
+        {
+          "command": "biolint.verifyHash",
+          "group": "biolint@2",
+          "when": "resourceExtname =~ /\\.(fa|fasta|fna|ffn|faa|frn|gb|gbk|genbank|gbf|fastq|fq|yaml|yml|py|ts)$/i"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "biolint.showSequenceView",
+          "group": "biolint@1"
+        },
+        {
+          "command": "biolint.optimizePrimer",
+          "group": "biolint@2"
+        },
+        {
+          "command": "biolint.reverseComplement",
+          "group": "biolint@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "biolint.showSequenceView"
+        },
+        {
+          "command": "biolint.exportCertificate"
+        },
+        {
+          "command": "biolint.verifyHash"
+        },
+        {
+          "command": "biolint.installPreCommitHook"
+        },
+        {
+          "command": "biolint.switchMode"
+        },
+        {
+          "command": "biolint.loginEnterprise"
+        },
+        {
+          "command": "biolint.logoutEnterprise"
+        },
+        {
+          "command": "biolint.optimizePrimer"
+        },
+        {
+          "command": "biolint.reverseComplement"
+        },
+        {
+          "command": "biolint.openCommandCenter"
+        },
+        {
+          "command": "biolint.openSynthFlowStudio"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "BioLint",
+      "properties": {
+        "biolint.mode": {
+          "type": "string",
+          "enum": ["local", "enterprise"],
+          "default": "local",
+          "description": "Hybrid mode: local offline engine vs enterprise cloud sync."
+        },
+        "biolint.enterpriseUrl": {
+          "type": "string",
+          "default": "https://app.bioguard.ai",
+          "description": "Enterprise Command Center base URL."
+        },
+        "biolint.synthFlowStudioUrl": {
+          "type": "string",
+          "default": "https://studio.synthflow.ai",
+          "description": "SynthFlow Studio visual design URL (bridge for visual phases)."
+        },
+        "biolint.gc.warnLow": {
+          "type": "number",
+          "default": 35,
+          "description": "GC% below this triggers thermodynamic warning."
+        },
+        "biolint.gc.warnHigh": {
+          "type": "number",
+          "default": 65,
+          "description": "GC% above this triggers thermodynamic warning."
+        },
+        "biolint.minPrimerLength": {
+          "type": "number",
+          "default": 15,
+          "description": "Minimum DNA token length to lint inside generic files (py/ts/yaml)."
+        },
+        "biolint.minOrfLength": {
+          "type": "number",
+          "default": 90,
+          "description": "Minimum ORF length (nt) to report as valid ORF in visualizer."
+        },
+        "biolint.enableHover": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show thermodynamic hover (Tm, GC%, ΔG) on DNA selections."
+        },
+        "biolint.enableLocalThreatDb": {
+          "type": "boolean",
+          "default": true,
+          "description": "Screen against local .bioguard/ public threat lists (offline)."
+        },
+        "biolint.debounceMs": {
+          "type": "number",
+          "default": 350,
+          "description": "Debounce delay (ms) before re-linting after edits."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc --noEmit -p ./",
+    "test": "npm run test:unit",
+    "test:unit": "tsc -p ./ && node ./out/bio/__tests__/run.js",
+    "package": "vsce package --no-dependencies",
+    "package:vsix": "npm run compile && npx --yes @vscode/vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}

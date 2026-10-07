@@ -1,0 +1,8 @@
+# Synthetic amended pipeline config — inline DNA mining demo
+primers:
+  forward: "ATGCGATCGATCGATCGATCGA"
+  reverse: "TCGATCGATCGATCGATCGCAT"
+  bad_at_rich: "ATATATATATATATATATATATATATAT"
+construct: >
+  ATGCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGAT
+notes: GC clamp / homopolymer / Tm checks run on every quoted run >= 15 nt

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "GenBank",
+  "scopeName": "source.biogenbank",
+  "fileTypes": ["gb", "gbk", "genbank", "gbf"],
+  "patterns": [
+    { "match": "^(LOCUS|DEFINITION|ACCESSION|VERSION|KEYWORDS|SOURCE|ORGANISM|REFERENCE|COMMENT|FEATURES|ORIGIN|CONTIG|BASE COUNT)\\b", "name": "keyword.control.genbank" },
+    { "match": "^ORIGIN.*$", "name": "entity.name.tag.origin.genbank" },
+    { "match": "^/\\w+", "name": "variable.parameter.genbank" },
+    { "match": "\\b(CDS|gene|promoter|primer_bind|misc_feature|repeat_region|source)\\b", "name": "entity.name.feature.genbank" },
+    { "match": "\\b(atg|taa|tag|tga)\\b", "name": "string.codon.genbank" },
+    { "match": "[^a-zA-Z0-9\\s\\-\\._/\\(\\)\\[\\]:,;'\"<>\\*\\+]+", "name": "invalid.illegal.genbank" }
+  ]
+}

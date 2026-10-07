@@ -1,0 +1,28 @@
+{
+  "FASTA primer record": {
+    "prefix": "faprimer",
+    "scope": "biofasta",
+    "description": "BioLint: FASTA record template for a primer candidate",
+    "body": [">${1:primer_name} ${2:description}", "${3:ATGCGATCGATCGATCGATCGA}"]
+  },
+  "FASTA construct record": {
+    "prefix": "faconstruct",
+    "scope": "biofasta",
+    "description": "BioLint: FASTA record template for a construct",
+    "body": [">${1:construct_id} | ${2:notes}", "${3:ATGCGATCGA}"]
+  },
+  "BioGuard local threat entry": {
+    "prefix": "bgentry",
+    "scope": "json",
+    "description": "BioLint: .bioguard/threats.json entry template",
+    "body": [
+      "{",
+      "  \"pattern\": \"${1:ACGTACGTACGTACGTACGT}\",",
+      "  \"name\": \"${2:CUSTOM-001 description}\",",
+      "  \"regulation\": \"${3|CUSTOM,IIGS,CDC,AUSTRALIA_GROUP|}\",",
+      "  \"severity\": \"${4|FLAGGED_FOR_REVIEW,REJECTED|}\",",
+      "  \"description\": \"${5:why this k-mer is listed}\"",
+      "}"
+    ]
+  }
+}

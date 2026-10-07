@@ -1,0 +1,9 @@
+[
+  {
+    "pattern": "ACGTACGTACGTACGTACGTACGT",
+    "name": "EXAMPLE-CUSTOM-001 (replace with your curated k-mers)",
+    "regulation": "CUSTOM",
+    "severity": "FLAGGED_FOR_REVIEW",
+    "description": "Example local list entry. Replace with curated blocklist k-mers for your lab."
+  }
+]

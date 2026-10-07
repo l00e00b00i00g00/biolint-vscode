@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  tags:
+    - "v*"
+
+jobs:
+  build-test-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run compile
+      - run: npm run test:unit
+
+      - name: Smoke-lint examples (headless bio engine)
+        run: |
+          node -e "
+          const fs=require('fs');
+          const bio=require('./out/bio/index.js');
+          let errors=0;
+          for (const f of ['examples/demo.fasta','examples/demo.gb','examples/pipeline.yaml']) {
+            const text=fs.readFileSync(f,'utf8');
+            const segs=bio.extractSegments(f,text,15);
+            if(!segs.length){console.error('NO SEGMENTS in '+f);errors++;}
+            for(const s of segs) for(let i=0;i<s.raw.length;i++){
+              if(text[s.seqToDoc[i]]===undefined||text[s.seqToDoc[i]].toUpperCase()!==s.raw[i]){console.error('BAD OFFSET in '+f+' '+s.id);errors++;break;}
+            }
+          }
+          if(errors)process.exit(1);
+          console.log('smoke lint OK');
+          "
+
+      - name: Package .vsix (Marketplace + Open VSX + air-gapped artifact)
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: biolint-vsix
+          path: "*.vsix"
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test-package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: biolint-vsix
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.vsix"
+          body: |
+            BioLint-VSCode `${{ github.ref_name }}` — install offline (air-gapped labs):
+            `code --install-extension biolint-vscode-*.vsix`

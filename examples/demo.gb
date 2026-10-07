@@ -1,0 +1,19 @@
+LOCUS       DEMO001                  120 bp    DNA     synthetic       07-OCT-2026
+DEFINITION  Synthetic demo construct for BioLint.
+ACCESSION   DEMO001
+VERSION     DEMO001.1
+KEYWORDS    synthetic; demo.
+SOURCE      synthetic DNA construct
+  ORGANISM  synthetic DNA construct
+FEATURES             Location/Qualifiers
+     source          1..120
+                     /organism="synthetic DNA construct"
+                     /mol_type="other DNA"
+     CDS             1..90
+                     /label="demo_orf"
+                     /translation="MRS..."
+ORIGIN
+        1 atgcgatcga tcgatcgatc gatcgatcga tcgatcgatc gatcgatcga tcgatcgatc
+       61 gatcgatcga tcgatcgatc gatcgatcga tcgatcgatc gatcgatcgc gcgcgcgcgc
+      121 gcgcgcgcgc
+//

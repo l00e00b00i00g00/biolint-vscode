@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "FASTQ",
+  "scopeName": "source.biofastq",
+  "fileTypes": ["fastq", "fq"],
+  "patterns": [
+    { "match": "^@.*$", "name": "entity.name.tag.read.biofastq" },
+    { "match": "^\\+.*$", "name": "keyword.control.separator.biofastq" },
+    { "match": "^[ATGCNatgcn\\.]+$", "name": "string.unquoted.sequence.biofastq" },
+    { "match": "[^ATGCNatgcn\\.\\s@\\+]+", "name": "invalid.illegal.sequence.biofastq" }
+  ]
+}
