@@ -2,7 +2,7 @@
   "name": "biolint-vscode",
   "displayName": "BioLint — DNA Linter for Synthetic Biology",
   "description": "Real-time linter for DNA: GC%, Tm (SantaLucia), ΔG hairpins, broken ORFs, restriction sites, BioGuard biosafety screening. Local-first, Enterprise-ready.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "bioguard",
   "license": "Apache-2.0",
   "repository": {
@@ -100,25 +100,25 @@
     "walkthroughs": [
       {
         "id": "biolint.getStarted",
-        "title": "Get started with BioLint",
-        "description": "Lint DNA in real time: diagnostics, primer thermodynamics, visualizer, certificates.",
+        "title": "%walkthrough.biolint.title%",
+        "description": "%walkthrough.biolint.description%",
         "steps": [
           {
             "id": "biolint.walkthrough.lint",
-            "title": "See live DNA diagnostics",
-            "description": "Open examples/demo.fasta, then View → Problems. Red = biosafety/invalid bases, orange = thermo/broken ORFs, blue = optimizations.",
+            "title": "%walkthrough.biolint.lint.title%",
+            "description": "%walkthrough.biolint.lint.description%",
             "media": { "path": "media/walkthrough-lint.md" }
           },
           {
             "id": "biolint.walkthrough.hover",
-            "title": "Hover any primer",
-            "description": "Hover a DNA run (≥15 nt) for Tm, GC%, ΔG and one-click Optimize / Reverse complement.",
+            "title": "%walkthrough.biolint.hover.title%",
+            "description": "%walkthrough.biolint.hover.description%",
             "media": { "path": "media/walkthrough-hover.md" }
           },
           {
             "id": "biolint.walkthrough.certify",
-            "title": "Visualize, certify & protect",
-            "description": "Sequence Visualizer, SHA-256 certificates, pre-commit hook, SynthFlow Studio bridge.",
+            "title": "%walkthrough.biolint.certify.title%",
+            "description": "%walkthrough.biolint.certify.description%",
             "media": { "path": "media/walkthrough-certify.md" }
           }
         ]
@@ -127,56 +127,72 @@
     "commands": [
       {
         "command": "biolint.showSequenceView",
-        "title": "BioLint: Show Sequence Visualizer",
+        "title": "%command.biolint.showSequenceView%",
         "icon": "$(symbol-misc)"
       },
       {
         "command": "biolint.exportCertificate",
-        "title": "BioLint: Export Compliance Certificate (SHA-256)"
+        "title": "%command.biolint.exportCertificate%"
       },
       {
         "command": "biolint.verifyHash",
-        "title": "BioLint: Verify File Hash (SHA-256)"
+        "title": "%command.biolint.verifyHash%"
       },
       {
         "command": "biolint.installPreCommitHook",
-        "title": "BioLint: Install Git Pre-commit Biosafety Hook"
+        "title": "%command.biolint.installPreCommitHook%"
       },
       {
         "command": "biolint.switchMode",
-        "title": "BioLint: Switch Mode (Local / Enterprise)"
+        "title": "%command.biolint.switchMode%"
       },
       {
         "command": "biolint.loginEnterprise",
-        "title": "BioLint: Login to Enterprise (app.bioguard.ai)"
+        "title": "%command.biolint.loginEnterprise%"
       },
       {
         "command": "biolint.logoutEnterprise",
-        "title": "BioLint: Logout from Enterprise"
+        "title": "%command.biolint.logoutEnterprise%"
       },
       {
         "command": "biolint.optimizePrimer",
-        "title": "BioLint: Optimize This Primer"
+        "title": "%command.biolint.optimizePrimer%"
       },
       {
         "command": "biolint.reverseComplement",
-        "title": "BioLint: Generate Reverse Complement"
+        "title": "%command.biolint.reverseComplement%"
       },
       {
         "command": "biolint.checkPrimerPair",
-        "title": "BioLint: QC Primer Pair (ΔTm + Heterodimer)"
+        "title": "%command.biolint.checkPrimerPair%"
       },
       {
         "command": "biolint.optimizeCodons",
-        "title": "BioLint: Optimize Codons for Host (CAI)"
+        "title": "%command.biolint.optimizeCodons%"
+      },
+      {
+        "command": "biolint.openAuditLog",
+        "title": "%command.biolint.openAuditLog%"
+      },
+      {
+        "command": "biolint.exportAuditLog",
+        "title": "%command.biolint.exportAuditLog%"
+      },
+      {
+        "command": "biolint.showOutput",
+        "title": "%command.biolint.showOutput%"
+      },
+      {
+        "command": "biolint.diffConstructs",
+        "title": "%command.biolint.diffConstructs%"
       },
       {
         "command": "biolint.openCommandCenter",
-        "title": "BioLint: Open Enterprise Command Center"
+        "title": "%command.biolint.openCommandCenter%"
       },
       {
         "command": "biolint.openSynthFlowStudio",
-        "title": "BioLint: Open in SynthFlow Studio (Visual Design)"
+        "title": "%command.biolint.openSynthFlowStudio%"
       }
     ],
     "menus": {
@@ -256,6 +272,18 @@
           "command": "biolint.optimizeCodons"
         },
         {
+          "command": "biolint.openAuditLog"
+        },
+        {
+          "command": "biolint.exportAuditLog"
+        },
+        {
+          "command": "biolint.showOutput"
+        },
+        {
+          "command": "biolint.diffConstructs"
+        },
+        {
           "command": "biolint.openCommandCenter"
         },
         {
@@ -270,93 +298,98 @@
           "type": "string",
           "enum": ["local", "enterprise"],
           "default": "local",
-          "description": "Hybrid mode: local offline engine vs enterprise cloud sync."
+          "description": "%config.biolint.mode%"
         },
         "biolint.enterpriseUrl": {
           "type": "string",
           "default": "https://app.bioguard.ai",
-          "description": "Enterprise Command Center base URL."
+          "description": "%config.biolint.enterpriseUrl%"
         },
         "biolint.synthFlowStudioUrl": {
           "type": "string",
           "default": "https://studio.synthflow.ai",
-          "description": "SynthFlow Studio visual design URL (bridge for visual phases)."
+          "description": "%config.biolint.synthFlowStudioUrl%"
         },
         "biolint.gc.warnLow": {
           "type": "number",
           "default": 35,
-          "description": "GC% below this triggers thermodynamic warning."
+          "description": "%config.biolint.gc.warnLow%"
         },
         "biolint.gc.warnHigh": {
           "type": "number",
           "default": 65,
-          "description": "GC% above this triggers thermodynamic warning."
+          "description": "%config.biolint.gc.warnHigh%"
         },
         "biolint.minPrimerLength": {
           "type": "number",
           "default": 15,
-          "description": "Minimum DNA token length to lint inside generic files (py/ts/yaml)."
+          "description": "%config.biolint.minPrimerLength%"
         },
         "biolint.minOrfLength": {
           "type": "number",
           "default": 90,
-          "description": "Minimum ORF length (nt) to report as valid ORF in visualizer."
+          "description": "%config.biolint.minOrfLength%"
         },
         "biolint.enableHover": {
           "type": "boolean",
           "default": true,
-          "description": "Show thermodynamic hover (Tm, GC%, ΔG) on DNA selections."
+          "description": "%config.biolint.enableHover%"
         },
         "biolint.enableLocalThreatDb": {
           "type": "boolean",
           "default": true,
-          "description": "Screen against local .bioguard/ public threat lists (offline)."
+          "description": "%config.biolint.enableLocalThreatDb%"
         },
         "biolint.debounceMs": {
           "type": "number",
           "default": 350,
-          "description": "Debounce delay (ms) before re-linting after edits."
+          "description": "%config.biolint.debounceMs%"
         },
         "biolint.tm.primerConcNM": {
           "type": "number",
           "default": 250,
-          "description": "Primer strand concentration (nM) for SantaLucia Tm."
+          "description": "%config.biolint.tm.primerConcNM%"
         },
         "biolint.tm.naConcMM": {
           "type": "number",
           "default": 50,
-          "description": "Monovalent salt Na+ (mM) for SantaLucia Tm salt correction."
+          "description": "%config.biolint.tm.naConcMM%"
         },
         "biolint.tm.mgConcMM": {
           "type": "number",
           "default": 0,
-          "description": "Mg++ (mM) for Tm correction (0 = disabled)."
+          "description": "%config.biolint.tm.mgConcMM%"
         },
         "biolint.codonHost": {
           "type": "string",
           "enum": ["ecoli", "yeast", "human"],
           "default": "ecoli",
-          "description": "Expression host for codon optimality (CAI) checks."
+          "description": "%config.biolint.codonHost%"
         },
         "biolint.codon.caiWarnBelow": {
           "type": "number",
           "default": 0.65,
-          "description": "Complete ORFs with CAI below this get an optimization hint."
+          "description": "%config.biolint.codon.caiWarnBelow%"
         },
         "biolint.codon.customTablePath": {
           "type": "string",
           "default": "",
-          "description": "Optional JSON codon table {codon: freqPerThousand} overriding built-ins."
+          "description": "%config.biolint.codon.customTablePath%"
         },
         "biolint.pair.maxDeltaTm": {
           "type": "number",
           "default": 5,
-          "description": "Primer-pair QC fails when |Tm_fwd − Tm_rev| exceeds this (°C)."
+          "description": "%config.biolint.pair.maxDeltaTm%"
         },
         "biolint.enableInlayHints": {
           "type": "boolean",
           "default": true,
-          "description": "Show inline Tm · GC% hints after DNA runs."
+          "description": "%config.biolint.enableInlayHints%"
+        },
+        "biolint.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.biolint.debug%"
         }
       }
     }

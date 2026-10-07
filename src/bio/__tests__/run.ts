@@ -5,6 +5,7 @@ import { heteroDimerDeltaG } from '../deltaG';
 import { analyzePair } from '../primer';
 import { cai, findRareCodons, optimizeCodons, HOST_TABLES } from '../codon';
 import { parseGenBankAnnotations, validateGenBank, spliceFeature } from '../genbank';
+import { alignConstructs } from '../align';
 import { gcContent, classifyGC } from '../gc';
 import { santaLuciaTm, wallaceTm } from '../tm';
 import { hairpinDeltaG, selfDimerDeltaG } from '../deltaG';
@@ -202,6 +203,22 @@ check('v1.1.0: genbank complement strand', () => {
   assert.strictEqual(ann.features[0].strand, -1);
   assert.strictEqual(spliceFeature(fwd, ann.features[0]), GB30);
   assert.deepStrictEqual(validateGenBank(fwd, ann), [], 'complement CDS should validate');
+});
+
+check('v1.2.0: construct alignment', () => {
+  const same = alignConstructs('ATGCGATCGA', 'ATGCGATCGA');
+  assert.strictEqual(same.variants.length, 0);
+  assert.strictEqual(same.identity, 1);
+  const snp = alignConstructs('ATGCGATCGA', 'ATGCGTTCGA');
+  assert.strictEqual(snp.variants.length, 1);
+  assert.strictEqual(snp.variants[0].kind, 'snp');
+  assert.strictEqual(snp.variants[0].from, 'A');
+  assert.strictEqual(snp.variants[0].to, 'T');
+  assert.strictEqual(snp.variants[0].posA, 5);
+  const indel = alignConstructs('ATGCGATCGA', 'ATGCGAAATCGA');
+  assert.ok(indel.variants.some(v => v.kind === 'insertion' && v.to === 'AA'), `got ${JSON.stringify(indel.variants)}`);
+  const del = alignConstructs('ATGCGAAATCGA', 'ATGCGATCGA');
+  assert.ok(del.variants.some(v => v.kind === 'deletion' && v.from === 'AA'), `got ${JSON.stringify(del.variants)}`);
 });
 
 check('AUDIT: stripToPure mapping (N/U/gaps/invalid)', () => {

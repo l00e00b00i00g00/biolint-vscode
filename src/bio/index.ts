@@ -8,3 +8,4 @@ export * from './primer';
 export * from './bioguard';
 export * from './codon';
 export * from './genbank';
+export * from './align';

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 — 2026-10-07 (Lab workflow)
+- Construct diff: Needleman-Wunsch SNP/indel report webview with click-to-reveal in both files
+- Local screening audit trail (JSONL, rotated) + open/export commands + BioLint output channel with timings (`biolint.debug`)
+- File summary status bar: live nt · GC% · verdict per active file
+- Full French localization (package.nls.fr — 44 keys: commands, walkthrough, settings)
+
 ## 1.1.0 — 2026-10-07 (Design accuracy)
 - Codon optimization: CAI + rare codons (E. coli/yeast/human built-ins, custom JSON override), optimizer command, blue CAI hints on complete ORFs
 - Primer-pair QC command: ΔTm matching + heterodimer ΔG (selections or quickpick)

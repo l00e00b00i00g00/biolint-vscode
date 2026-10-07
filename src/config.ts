@@ -22,6 +22,7 @@ export interface BioLintConfig {
   codonCaiWarnBelow: number;
   pairMaxDeltaTm: number;
   enableInlayHints: boolean;
+  debug: boolean;
 }
 
 export function tmOptionsOf(cfg: BioLintConfig): { primerConcNM: number; naConcMM: number; mgConcMM: number } {
@@ -50,6 +51,7 @@ export function getConfig(): BioLintConfig {
     codonCaiWarnBelow: c.get<number>('codon.caiWarnBelow', 0.65),
     pairMaxDeltaTm: c.get<number>('pair.maxDeltaTm', 5),
     enableInlayHints: c.get<boolean>('enableInlayHints', true),
+    debug: c.get<boolean>('debug', false),
   };
 }
 

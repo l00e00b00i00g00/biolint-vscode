@@ -4,9 +4,11 @@ import { BioLinter } from './diagnostics';
 import { BioHoverProvider } from './hover';
 import { BioInlayProvider } from './inlay';
 import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement, cmdCheckPrimerPair, cmdOptimizeCodons } from './codeActions';
-import { ModeStatusBar, cmdSwitchMode } from './statusBar';
+import { ModeStatusBar, FileSummary, cmdSwitchMode } from './statusBar';
+import { AuditLog } from './auditLog';
 import { loginEnterprise, logoutEnterprise, openCommandCenter, openSynthFlowStudio, sha256HexSync } from './enterprise';
 import { SequenceViewPanel } from './panels/sequenceView';
+import { DiffPanel } from './panels/diffView';
 import { cmdExportCertificate, cmdVerifyHash } from './compliance';
 import { cmdInstallPreCommitHook } from './gitHook';
 import { getConfig } from './config';
@@ -20,8 +22,12 @@ const SELECTOR: vscode.DocumentSelector = [
 ];
 
 export function activate(ctx: vscode.ExtensionContext): void {
-  const linter = new BioLinter(ctx);
+  const output = vscode.window.createOutputChannel('BioLint');
+  ctx.subscriptions.push(output);
+  const audit = new AuditLog(ctx);
   const statusBar = new ModeStatusBar(ctx);
+  const fileSummary = new FileSummary(ctx);
+  const linter = new BioLinter(ctx, output, audit, doc => fileSummary.schedule(doc));
 
   // Initial lint of already-open editors (LSP-style background analysis).
   for (const ed of vscode.window.visibleTextEditors) {
@@ -42,7 +48,12 @@ export function activate(ctx: vscode.ExtensionContext): void {
       }
     }),
     vscode.window.onDidChangeActiveTextEditor(ed => {
-      if (ed && linter.shouldLint(ed.document)) { SequenceViewPanel.update(ed.document); }
+      if (ed && linter.shouldLint(ed.document)) {
+        SequenceViewPanel.update(ed.document);
+        fileSummary.schedule(ed.document);
+      } else {
+        fileSummary.schedule(undefined);
+      }
     }),
 
     vscode.languages.registerHoverProvider(SELECTOR, new BioHoverProvider()),
@@ -52,6 +63,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
     }),
 
     vscode.commands.registerCommand('biolint.showSequenceView', () => SequenceViewPanel.show(ctx)),
+    vscode.commands.registerCommand('biolint.diffConstructs', () => DiffPanel.run(ctx)),
     vscode.commands.registerCommand('biolint.exportCertificate', (uri?: vscode.Uri) => cmdExportCertificate(uri)),
     vscode.commands.registerCommand('biolint.verifyHash', (uri?: vscode.Uri) => cmdVerifyHash(uri)),
     vscode.commands.registerCommand('biolint.installPreCommitHook', (uri?: vscode.Uri) => cmdInstallPreCommitHook(uri)),
@@ -68,6 +80,9 @@ export function activate(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('biolint.reverseComplement', (arg?: unknown) => cmdReverseComplement(arg)),
     vscode.commands.registerCommand('biolint.checkPrimerPair', () => cmdCheckPrimerPair()),
     vscode.commands.registerCommand('biolint.optimizeCodons', () => cmdOptimizeCodons()),
+    vscode.commands.registerCommand('biolint.openAuditLog', () => audit.open()),
+    vscode.commands.registerCommand('biolint.exportAuditLog', () => audit.export()),
+    vscode.commands.registerCommand('biolint.showOutput', () => output.show()),
     vscode.commands.registerCommand('biolint.openCommandCenter', async () => {
       const hash = hashOfActive();
       const verdict = verdictOfActive();
@@ -79,6 +94,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   );
 
   void statusBar.refresh();
+  fileSummary.schedule(vscode.window.activeTextEditor?.document);
 }
 
 function hashOfActive(): string | undefined {

@@ -15,6 +15,10 @@ Real-time linting, thermodynamic analysis and biosafety screening for DNA sequen
 - **Primer-pair QC** (`BioLint: QC Primer Pair`) — ΔTm matching + heterodimer ΔG from two selections or quickpick.
 - **Codon optimization** (`BioLint: Optimize Codons for Host`) — CAI + rare codons for *E. coli* / yeast / human (custom JSON tables supported), blue hints on low-CAI ORFs.
 - **GenBank validation** — LOCUS length vs ORIGIN, CDS bounds/start/stop/frame, `/translation` agreement (both strands, `join()` supported).
+- **Codon lens** — hover any ORF-length DNA for CAI context; status bar shows live `nt · GC% · verdict` per file.
+- **Construct diff** (`BioLint: Diff Two Constructs`) — Needleman-Wunsch mutation report (SNP/indel) with click-to-reveal in both files.
+- **Audit trail** — every screening appended to a local JSONL log (`Open/Export Screening Audit Log`); per-file timings in the BioLint output channel (`biolint.debug`).
+- **French localization** — commands, walkthrough and settings fully translated (`package.nls.fr`).
 - **Hybrid mode** (status bar): `Local (offline)` = embedded engine + `.bioguard/` lists, no data leaves the machine · `Enterprise` = OAuth2/JWT → `app.bioguard.ai` threat feed + Command Center deep-links.
 - **Sequence visualizer** (`BioLint: Show Sequence Visualizer`) — ORF map, restriction sites (24 enzymes), GC profile, biosafety verdict, certificate export, SynthFlow Studio bridge.
 - **Compliance** — right-click any `.fa/.gb/.fastq/.yaml/.py/.ts` → *Export Compliance Certificate (SHA-256)* / *Verify File Hash*.

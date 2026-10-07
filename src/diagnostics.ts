@@ -18,6 +18,8 @@ import {
 } from './bio';
 import { getConfig, tmOptionsOf } from './config';
 import { getToken } from './enterprise';
+import { AuditLog } from './auditLog';
+import { sha256HexSync } from './enterprise';
 
 export const CODE = {
   invalidBase: 'biolint.invalid-base',
@@ -43,7 +45,12 @@ export class BioLinter {
   private runIds = new Map<string, number>();
   private pendingEnterprise = new Map<string, number>();
 
-  constructor(private ctx: vscode.ExtensionContext) {
+  constructor(
+    private ctx: vscode.ExtensionContext,
+    private output: vscode.OutputChannel,
+    private audit: AuditLog,
+    private onDone?: (doc: vscode.TextDocument) => void,
+  ) {
     this.collection = vscode.languages.createDiagnosticCollection('biolint');
     ctx.subscriptions.push(this.collection);
   }
@@ -79,6 +86,7 @@ export class BioLinter {
   }
 
   async lint(doc: vscode.TextDocument): Promise<void> {
+    const started = Date.now();
     const key = doc.uri.toString();
     const runId = (this.runIds.get(key) ?? 0) + 1;
     this.runIds.set(key, runId);
@@ -130,7 +138,34 @@ export class BioLinter {
       ));
     }
     if (!alive()) { return; }
-    this.collection.set(doc.uri, diags.slice(0, MAX_DIAGS));
+    const finalDiags = diags.slice(0, MAX_DIAGS);
+    this.collection.set(doc.uri, finalDiags);
+    // v1.2.0: output timings + local audit trail (never blocks linting).
+    try {
+      const ms = Date.now() - started;
+      let errors = 0, warnings = 0, rejected = 0, flagged = 0;
+      for (const d of finalDiags) {
+        if (d.severity === vscode.DiagnosticSeverity.Error) { errors++; }
+        else if (d.severity === vscode.DiagnosticSeverity.Warning) { warnings++; }
+        const code = typeof d.code === 'string' ? d.code : (d.code as { value?: string } | undefined)?.value ?? '';
+        if (code === CODE.rejected) { rejected++; }
+        else if (code === CODE.flagged) { flagged++; }
+      }
+      const verdict = rejected > 0 ? 'REJECTED' : flagged > 0 ? 'FLAGGED_FOR_REVIEW' : 'APPROVED';
+      if (cfg.debug || verdict !== 'APPROVED') {
+        this.output.appendLine(`[biolint] ${shortName(doc.fileName)} — ${finalDiags.length} diag (${errors}E/${warnings}W) verdict=${verdict} db=${db.version} ${ms}ms`);
+      }
+      void this.audit.append({
+        ts: new Date().toISOString(),
+        file: shortName(doc.fileName),
+        sha256: sha256HexSync(text).slice(0, 16),
+        mode: cfg.mode,
+        dbVersion: db.version,
+        records: segments.length,
+        verdict, rejected, flagged, errors, warnings,
+      });
+    } catch { /* observability must never break linting */ }
+    try { this.onDone?.(doc); } catch { /* ignore */ }
   }
 
   private async enterpriseRescreen(doc: vscode.TextDocument, seg: DnaSegment, localVersion: string, token: string): Promise<void> {
@@ -409,4 +444,9 @@ export class BioLinter {
       out.push(d);
     }
   }
+}
+
+function shortName(p: string): string {
+  const parts = p.split(/[\\/]/);
+  return parts[parts.length - 1] || p;
 }
