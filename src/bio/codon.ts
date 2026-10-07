@@ -6,6 +6,7 @@
  * `biolint.codon.customTablePath` (.bioguard/codon_usage.json), which takes
  * precedence over the built-ins.
  */
+import * as fs from 'fs';
 
 export type HostId = 'ecoli' | 'yeast' | 'human';
 
@@ -180,8 +181,6 @@ export function loadCodonTable(host: HostId, customPath: string): HostTable {
   const path = (customPath || '').trim();
   if (!path) { return HOST_TABLES[host] ?? HOST_TABLES.ecoli; }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs') as typeof import('fs');
     const stat = fs.statSync(path);
     const key = `${path}:${stat.mtimeMs}:${stat.size}`;
     if (tableCache && tableCache.key === key) { return tableCache.table; }

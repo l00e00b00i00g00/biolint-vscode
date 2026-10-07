@@ -86,6 +86,7 @@ Bundled patterns are **synthetic DEMO markers** (not real pathogen sequence) for
 - `BioLint: Switch Mode (Local / Enterprise)` · Login / Logout
 - `BioLint: Optimize This Primer` · `Generate Reverse Complement`
 - `BioLint: QC Primer Pair (ΔTm + Heterodimer)` · `Optimize Codons for Host (CAI)`
+- `BioLint: Diff Two Constructs (Mutations)` · `Open/Export Screening Audit Log` · `Show Output Channel`
 - `BioLint: Open Enterprise Command Center` · `Open in SynthFlow Studio`
 
 ## Distribution

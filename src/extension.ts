@@ -7,6 +7,7 @@ import { BioCodeActionProvider, cmdOptimizePrimer, cmdReverseComplement, cmdChec
 import { ModeStatusBar, FileSummary, cmdSwitchMode } from './statusBar';
 import { AuditLog } from './auditLog';
 import { loginEnterprise, logoutEnterprise, openCommandCenter, openSynthFlowStudio, sha256HexSync } from './enterprise';
+import { clearThreatCache } from './bio';
 import { SequenceViewPanel } from './panels/sequenceView';
 import { DiffPanel } from './panels/diffView';
 import { cmdExportCertificate, cmdVerifyHash } from './compliance';
@@ -37,7 +38,13 @@ export function activate(ctx: vscode.ExtensionContext): void {
   ctx.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument(doc => { if (linter.shouldLint(doc)) { void linter.lint(doc); } }),
     vscode.workspace.onDidChangeTextDocument(e => linter.schedule(e.document)),
-    vscode.workspace.onDidSaveTextDocument(doc => { if (linter.shouldLint(doc)) { void linter.lint(doc); } }),
+    vscode.workspace.onDidSaveTextDocument(doc => {
+      // Audit: threat-DB edits take effect immediately (cache holds stale lists otherwise).
+      if (/[\\/]\.bioguard[\\/][^\\/]*\.json$/i.test(doc.fileName)) {
+        clearThreatCache();
+      }
+      if (linter.shouldLint(doc)) { void linter.lint(doc); }
+    }),
     vscode.workspace.onDidCloseTextDocument(doc => linter.clear(doc)),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('biolint')) {
@@ -116,11 +123,6 @@ function verdictOfActive(): string {
 function codeValue(d: vscode.Diagnostic): string | undefined {
   if (d.code && typeof d.code === 'object') { return (d.code as { value: string }).value; }
   return undefined;
-}
-
-// Keep for tests that import the module without vscode runtime.
-export function getConfigSafe(): ReturnType<typeof getConfig> | undefined {
-  try { return getConfig(); } catch { return undefined; }
 }
 
 export function deactivate(): void { /* diagnostics collection disposed via subscriptions */ }

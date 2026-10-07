@@ -362,7 +362,8 @@ export class BioLinter {
     const table = loadCodonTable(cfg.codonHost, vscode.workspace.getConfiguration('biolint').get<string>('codon.customTablePath', ''));
     let emitted = 0;
     for (const o of findORFs(pure, cfg.minOrfLength)) {
-      if (!o.complete || emitted >= 5) { break; }
+      if (emitted >= 5) { break; }
+      if (!o.complete) { continue; } // audit fix: incomplete ORFs sort first by length — don't skip complete ones
       const slice = pure.slice(o.start, o.end);
       const coding = o.strand === 1 ? slice : reverseComplement(slice);
       const value = cai(coding, table);

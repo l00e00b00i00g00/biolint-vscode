@@ -205,6 +205,22 @@ check('v1.1.0: genbank complement strand', () => {
   assert.deepStrictEqual(validateGenBank(fwd, ann), [], 'complement CDS should validate');
 });
 
+check('AUDIT: genbank join() multi-exon', () => {
+  // exons 1..9 (ATG GCT GCT) + 22..30 (GCT GCT TAA) → ATG×(GCT×4)×TAA = MAAAA
+  const text = gbText(30, 'join(1..9,22..30)', 'MAAAA', GB30);
+  const ann = parseGenBankAnnotations(text);
+  assert.strictEqual(ann.features[0].exons.length, 2);
+  assert.strictEqual(spliceFeature(GB30, ann.features[0]), 'ATGGCTGCTGCTGCTTAA');
+  assert.deepStrictEqual(validateGenBank(GB30, ann), [], `join should validate, got ${JSON.stringify(validateGenBank(GB30, ann))}`);
+  // minus-strand join: transcript 5' end = highest coord of first exon
+  const ctext = gbText(30, 'complement(join(1..9,22..30))', 'MAAAA', reverseComplement(GB30));
+  const cann = parseGenBankAnnotations(ctext);
+  assert.strictEqual(cann.features[0].strand, -1);
+  assert.strictEqual(spliceFeature(reverseComplement(GB30), cann.features[0]), 'ATGGCTGCTGCTGCTTAA');
+  const cissues = validateGenBank(reverseComplement(GB30), cann);
+  assert.deepStrictEqual(cissues, [], `complement join should validate: ${JSON.stringify(cissues)}`);
+});
+
 check('v1.2.0: construct alignment', () => {
   const same = alignConstructs('ATGCGATCGA', 'ATGCGATCGA');
   assert.strictEqual(same.variants.length, 0);

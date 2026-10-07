@@ -23,7 +23,7 @@ export class BioInlayProvider implements vscode.InlayHintsProvider {
         perLine++;
         const token = m[0];
         if (new Set(token.toUpperCase()).size < 2) { continue; }
-        if (token.length > 600) { continue; } // contigs: hover/webview territory
+        if (token.length > 200) { continue; } // audit: hairpin scan is O(n·s·l·stem) — contigs belong to hover/webview
         const a = analyzePrimer(token, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg));
         const label = `Tm ${a.tm}° · GC ${a.gcPct}%` + (a.foldRisk !== 'low' ? ` · ΔG ${Math.min(a.hairpinDG, a.selfDimerDG)}` : '');
         const hint = new vscode.InlayHint(

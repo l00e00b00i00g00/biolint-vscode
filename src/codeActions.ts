@@ -2,7 +2,7 @@
 import * as vscode from 'vscode';
 import {
   optimizePrimer, reverseComplement, analyzePair, optimizeCodons,
-  HOST_TABLES, loadCodonTable,
+  HOST_TABLES, loadCodonTable, extractSegments,
 } from './bio';
 import { getConfig, tmOptionsOf } from './config';
 import { CODE } from './diagnostics';
@@ -165,7 +165,6 @@ export async function cmdCheckPrimerPair(): Promise<void> {
     fwd = clean(ed.document.getText(nonEmpty[0]));
     rev = clean(ed.document.getText(nonEmpty[1]));
   } else {
-    const { extractSegments } = await import('./bio');
     const cands = extractSegments(ed.document.fileName, ed.document.getText(), cfg.minPrimerLength)
       .map(s => ({ id: s.id, seq: clean(s.raw) }))
       .filter(c => c.seq.length >= 10 && c.seq.length <= 200);

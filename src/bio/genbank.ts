@@ -139,14 +139,20 @@ const COMP: Record<string, string> = { A: 'T', T: 'A', G: 'C', C: 'G', N: 'N', U
 
 /** Spliced 5'→3' coding sequence for a feature over the concatenated ORIGIN. */
 export function spliceFeature(concat: string, feat: CdsFeature): string {
+  // Exons stored 5'→3' (reversed for minus strand at parse time).
   const parts = feat.exons.map(e => concat.slice(e.start - 1, e.end));
-  const joined = parts.join('');
-  if (feat.strand === 1) { return joined.toUpperCase().replace(/U/g, 'T'); }
-  let rc = '';
-  for (let k = joined.length - 1; k >= 0; k--) {
-    rc += COMP[joined[k].toUpperCase()] ?? 'N';
+  if (feat.strand === 1) { return parts.join('').toUpperCase().replace(/U/g, 'T'); }
+  // Audit fix: rc EACH exon, then join — rc(A+B) would flip the exon order.
+  return parts.map(rcStr).join('');
+}
+
+function rcStr(s: string): string {
+  const t = s.toUpperCase().replace(/U/g, 'T');
+  let out = '';
+  for (let k = t.length - 1; k >= 0; k--) {
+    out += COMP[t[k]] ?? 'N';
   }
-  return rc;
+  return out;
 }
 
 export interface GbIssue {
@@ -182,8 +188,11 @@ export function validateGenBank(concatRaw: string, ann: GenBankAnnotations): GbI
     const frame = coding.slice(f.codonStart - 1);
     const startCodon = frame.slice(0, 3);
     if (startCodon !== 'ATG' && /^[ACGT]{3}$/.test(startCodon)) {
+      // Audit fix: on the minus strand the transcript 5' end is the HIGHEST
+      // coordinate (exons stored 5'→3', so exons[0].end), not the lowest.
+      const pos = f.strand === 1 ? f.exons[0].start : f.exons[0].end - 2;
       issues.push({
-        kind: 'cds-start', seqPos: f.strand === 1 ? f.exons[0].start : f.exons[f.exons.length - 1].end - 2,
+        kind: 'cds-start', seqPos: pos,
         seqLen: 3, lineOffset: f.lineOffset,
         message: `CDS ${f.rawLoc}: starts with ${startCodon}, not ATG — misannotated start or frameshift (codon_start=${f.codonStart}).`,
       });
@@ -196,8 +205,10 @@ export function validateGenBank(concatRaw: string, ann: GenBankAnnotations): GbI
     }
     const stopCodon = frame.slice(Math.max(0, frame.length - 3));
     if (/^[ACGT]{3}$/.test(stopCodon) && !['TAA', 'TAG', 'TGA'].includes(stopCodon)) {
+      // Audit fix: transcript 3' end = LOWEST coordinate on minus strand
+      // (last exon in 5'→3' order), highest on plus strand.
       const lastExon = f.exons[f.exons.length - 1];
-      const pos = f.strand === 1 ? lastExon.end - 2 : f.exons[0].start;
+      const pos = f.strand === 1 ? lastExon.end - 2 : lastExon.start;
       issues.push({
         kind: 'cds-stop', seqPos: pos, seqLen: 3, lineOffset: f.lineOffset,
         message: `CDS ${f.rawLoc}: ends with ${stopCodon}, not a stop codon — 3′-truncated or read-through annotation.`,

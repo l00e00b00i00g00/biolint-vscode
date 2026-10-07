@@ -34,12 +34,19 @@ export class BioHoverProvider implements vscode.HoverProvider {
 
   private renderHover(token: string, range: { start: { line: number; character: number }; end: { line: number; character: number } }): vscode.Hover {
     const cfg = getConfig();
-    const a = analyzePrimer(token, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg));
+    // Audit: folding scan is superlinear — single-line megabase FASTA would
+    // hang the hover. Analyze the first 1000 nt and say so.
+    const truncated = token.length > 1000;
+    const sample = truncated ? token.slice(0, 1000) : token;
+    const a = analyzePrimer(sample, cfg.gcWarnLow, cfg.gcWarnHigh, tmOptionsOf(cfg));
     const riskEmoji = a.foldRisk === 'high' ? '🔴' : a.foldRisk === 'medium' ? '🟠' : '🟢';
     const md = new vscode.MarkdownString();
     md.isTrusted = true;
     md.supportHtml = false;
     md.appendMarkdown(`### 🧬 BioLint Primer Analysis \`${a.length} nt · score ${a.score}/100\`\n\n`);
+    if (truncated) {
+      md.appendMarkdown(`> ⚠️ Showing the **first 1000 nt** of a ${token.length} nt run (folding scan capped for responsiveness).\n\n`);
+    }
     md.appendMarkdown(`| Metric | Value |\n|---|---|\n`);
     md.appendMarkdown(`| **T<sub>m</sub>** (SantaLucia) | **${a.tm}°C** _(${a.tmMethod}, Wallace ${a.tmWallace}°C)_ |\n`);
     md.appendMarkdown(`| **GC content** | **${a.gcPct}%** ${a.gcFlag !== 'normal' ? `⚠️ _${a.gcFlag}_` : '✅'} \`${a.gcSpark}\` |\n`);

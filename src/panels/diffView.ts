@@ -62,8 +62,8 @@ export class DiffPanel {
     identity: number, alignedLength: number, approximate: boolean, truncated: boolean,
   ): string {
     const data = JSON.stringify({
-      a: { file: a.uri.toString(), id: a.recordId, len: a.pure.length, docOffsets: a.docOffsets.slice(0, 20000) },
-      b: { file: b.uri.toString(), id: b.recordId, len: b.pure.length, docOffsets: b.docOffsets.slice(0, 20000) },
+      a: { file: a.uri.toString(), id: a.recordId, len: a.pure.length, docMap: toMap(a.docOffsets) },
+      b: { file: b.uri.toString(), id: b.recordId, len: b.pure.length, docMap: toMap(b.docOffsets) },
       variants: variants.slice(0, 200),
       identity: Math.round(identity * 1000) / 10,
       alignedLength, approximate, truncated, total: variants.length,
@@ -97,11 +97,12 @@ app.innerHTML = '<div class="card"><h2>🧬 Construct diff <span class="badge '+
   + '<div class="legend">Click a row to reveal it in both files.</div></div>';
 app.querySelectorAll('tr[data-a]').forEach(tr=>tr.addEventListener('click',()=>{
   const v = d.variants[parseInt(tr.dataset.a,10)];
-  const offA = d.a.docOffsets[Math.min(v.posA, d.a.docOffsets.length-1)];
-  const offB = d.b.docOffsets[Math.min(v.posB, d.b.docOffsets.length-1)];
+  const offA = lookup(d.a.docMap, v.posA);
+  const offB = lookup(d.b.docMap, v.posB);
   if(typeof offA==='number'){vscode.postMessage({command:'reveal',file:d.a.file,offset:offA});}
   if(typeof offB==='number'){setTimeout(()=>vscode.postMessage({command:'reveal',file:d.b.file,offset:offB}),150);}
 }));
+function lookup(m, p){return m && m.offsets.length ? m.offsets[Math.min(Math.floor(p/(m.step||1)), m.offsets.length-1)] : undefined;}
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 </script></body></html>`;
   }
@@ -147,4 +148,13 @@ async function pickSide(place: string, skip?: vscode.Uri): Promise<DiffSide | un
 function shortName(p: string): string {
   const parts = p.split(/[\\/]/);
   return parts[parts.length - 1] || p;
+}
+
+/** Downsampled pure→document map with step (audit fix: keeps >20k records aligned). */
+function toMap(docOffsets: number[]): { offsets: number[]; step: number } {
+  if (docOffsets.length <= 20000) { return { offsets: docOffsets, step: 1 }; }
+  const step = Math.ceil(docOffsets.length / 20000);
+  const out: number[] = [];
+  for (let i = 0; i < docOffsets.length; i += step) { out.push(docOffsets[i]); }
+  return { offsets: out, step };
 }
